@@ -11,6 +11,8 @@ function App() {
     const [db, setDb] = useState(null);
     const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0); // New state for upload progress
+    const [photoOrder, setPhotoOrder] = useState([]);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -18,6 +20,10 @@ function App() {
         }, 1000);
         return () => clearInterval(timer);
     }, []);
+
+    const toggleEditMode = () => {
+        setIsEditMode(!isEditMode);
+    };
 
     useEffect(() => {
         let interval;
@@ -118,13 +124,35 @@ function App() {
         let transaction = db.transaction('photos', 'readonly');
         let objectStore = transaction.objectStore('photos');
         let request = objectStore.getAll();
-
+    
         request.onerror = function() {
             console.error('Error getting photos from database');
         };
+    
 
         request.onsuccess = function(event) {
-            setPhotos(event.target.result);
+            const photos = event.target.result;
+            setPhotos(photos);
+            setPhotoOrder(photos.map((_, index) => index)); // Initialize order
+        };
+    };
+
+    const deletePhoto = (index) => {
+        const photoId = photos[photoOrder[index]].id; // Get the ID of the photo to delete
+        let transaction = db.transaction('photos', 'readwrite');
+        let objectStore = transaction.objectStore('photos');
+        let request = objectStore.delete(photoId);
+    
+        request.onerror = function() {
+            console.error('Error deleting photo from database');
+        };
+    
+        request.onsuccess = function() {
+            console.log('Photo deleted from database');
+            // Update state to remove the photo
+            const newPhotos = photos.filter((_, i) => i !== photoOrder[index]);
+            setPhotos(newPhotos);
+            setPhotoOrder(photoOrder.filter((i) => i !== photoOrder[index])); // Update order
         };
     };
 
@@ -134,7 +162,7 @@ function App() {
             addPhoto(file);
         }
     };
-
+    
     const openPhoto = (index) => {
         setSelectedPhotoIndex(index);
     };
@@ -152,42 +180,70 @@ function App() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+        <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
             {selectedPhotoIndex !== null ? (
-                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center">
-                    <div className="relative">
-                        <button onClick={closePhoto} className="absolute top-2 right-2 text-white text-2xl">X</button>
-                        <img src={URL.createObjectURL(new Blob([photos[selectedPhotoIndex].data]))} alt={`Photo ${selectedPhotoIndex + 1}`} className="max-w-full max-h-full" />
-                        <div className="absolute left-0 top-1/2 transform -translate-y-1/2">
-                            <button onClick={prevPhoto} className="text-white text-3xl">
-                                <i className="fas fa-chevron-left"></i>
-                            </button>
-                        </div>
-                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
-                            <button onClick={nextPhoto} className="text-white text-3xl">
-                                <i className="fas fa-chevron-right"></i>
-                            </button>
-                        </div>
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75" onClick={closePhoto}>
+                    <div className="absolute inset-0 flex items-center justify-between px-4">
+                        <button 
+                            className="text-white bg-gray-800 bg-opacity-50 p-2 rounded-full hover:bg-opacity-75"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPhotoIndex((prevIndex) => (prevIndex === 0 ? photos.length - 1 : prevIndex - 1));
+                            }}
+                        >
+                            ←
+                        </button>
+                        <button 
+                            className="text-white bg-gray-800 bg-opacity-50 p-2 rounded-full hover:bg-opacity-75"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPhotoIndex((prevIndex) => (prevIndex === photos.length - 1 ? 0 : prevIndex + 1));
+                            }}
+                        >
+                            →
+                        </button>
                     </div>
+                    <img 
+                        src={URL.createObjectURL(new Blob([photos[selectedPhotoIndex].data]))} 
+                        alt={`Photo ${selectedPhotoIndex + 1}`} 
+                        className="max-w-full max-h-full"
+                        onClick={closePhoto} // Close on clicking the image
+                        onError={() => console.error("Failed to load image:", photos[selectedPhotoIndex])}
+                    />
+                    {photos.length > 0 && (
+                        <div className="absolute bottom-4 text-white bg-gray-800 bg-opacity-50 px-3 py-1 rounded">
+                            {selectedPhotoIndex + 1} / {photos.length}
+                        </div>
+                    )}
                 </div>
             ) : showLockbox ? (
-                <div className="bg-white p-8 rounded-lg shadow-lg">
+                <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
                     <h1 className="text-3xl font-bold mb-4">Lockbox</h1>
                     <div className="mb-4">
                         <input type="file" onChange={handleFileChange} className="mb-2" />
                         {uploadProgress > 0 && (
                             <div className="mt-2">
-                                <div className="bg-gray-200 rounded-full h-2">
+                                <div className="bg-gray-600 rounded-full h-2">
                                     <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
                                 </div>
-                                <p className="text-sm text-gray-600">{Math.round(uploadProgress)}% Uploading...</p>
+                                <p className="text-sm text-gray-300">{Math.round(uploadProgress)}% Uploading...</p>
                             </div>
                         )}
                         <h2 className="text-xl font-semibold">Stored Photos/Videos</h2>
+                        <button onClick={toggleEditMode} className="bg-yellow-500 text-black px-4 py-2 rounded mb-4">
+                            {isEditMode ? 'Done Editing' : 'Edit'}
+                        </button>
                         <div className="grid grid-cols-3 gap-4">
-                            {photos.map((photo, index) => (
-                                <div key={index} className="cursor-pointer" onClick={() => openPhoto(index)}>
-                                    <img src={URL.createObjectURL(new Blob([photo.data]))} alt={`Photo ${index + 1}`} className="w-full h-32 object-cover" />
+                            {photoOrder.map((index) => (
+                                <div key={index} className="relative cursor-pointer" onClick={() => openPhoto(index)}>
+                                    <img src={URL.createObjectURL(new Blob([photos[index].data]))} alt={`Photo ${index + 1}`} className="w-full h-32 object-cover" />
+                                    <button 
+                                        onClick={() => deletePhoto(index)} 
+                                        className={`absolute top-0 right-0 bg-red-500 text-white px-2 py-1 ${isEditMode ? '' : 'opacity-0'}`} 
+                                        disabled={!isEditMode}
+                                    >
+                                        Delete
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -197,40 +253,33 @@ function App() {
                     </button>
                 </div>
             ) : !isStopwatchVisible ? (
-                <div className="bg-white p-8 rounded-lg shadow-lg">
+                <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
                     <h1 className="text-3xl font-bold mb-4">Clock</h1>
                     <p className="text-2xl">{currentTime.toLocaleTimeString()}</p>
-                    <button onClick={() => setIsStopwatchVisible(true)} className="bg-blue-500 text-white px-4 py-2 rounded mt-4">
-                        Switch to Stopwatch
-                    </button>
+                    <button onClick={() => setIsStopwatchVisible(true)} className="text-white px-4 py-2 rounded mt-4">
+                        <i className="fas fa-stopwatch"></i> </button>
                 </div>
             ) : (
-                <div className="bg-white p-8 rounded-lg shadow-lg">
+                <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
                     <h1 className="text-3xl font-bold mb-4">Stopwatch</h1>
                     <p className="text-2xl">{formatTime(stopwatchTime)}</p>
-                    <div className="mt-4">
-                        <button onClick={handleStartStop} className="bg-blue-500 text-white px-4 py-2 rounded mr-2">
-                            {isRunning ? 'Stop' : 'Start'}
+                    <div className="flex space-x-4 mt-4">
+                        <button onClick={handleStartStop} className="text-white px-4 py-2 rounded">
+                            Start
                         </button>
-                        <button onClick={handleReset} className="bg-red-500 text-white px-4 py-2 rounded mr-2">
+                        <button onClick={handleReset} className="text-white px-4 py-2 rounded">
+                            Stop
+                        </button>
+                        <button onClick={handleLap} className="text-white px-4 py-2 rounded">
                             Reset
                         </button>
-                        <button onClick={handleLap} className="bg-green-500 text-white px-4 py-2 rounded">
-                            Lap
-                        </button>
                     </div>
-                    <div>
-                        <h2 className="text-xl font-semibold">Laps</h2>
-                        <ul className="list-disc pl-5">
-                            {laps.map((lap, index) => (
-                                <li key={index} className="text-lg">{formatTime(lap)}</li>
-                            ))}
-                        </ul>
-                    </div>
-                    <button onClick={() => setIsStopwatchVisible(false)} className="bg-blue-500 text-white px-4 py-2 rounded mt-4">
-                        Back to Clock
-                    </button>
-                </div>
+                
+                
+                <button onClick={() => setIsStopwatchVisible(false)} className="bg-blue-500 text-white px-4 py-2 rounded mt-4">
+                    Back to Clock
+                </button>
+            </div>
             )}
         </div>
     );

@@ -1,3 +1,30 @@
 body {
     font-family: 'Roboto', sans-serif;
 }
+.absolute {
+    position: absolute;
+}
+
+.left-0 {
+    left: 0;
+}
+
+.right-0 {
+    right: 0;
+}
+
+.top-1-2 {
+    top: 50%;
+}
+
+.transform {
+    transform: translateY(-50%);
+}
+
+.text-white {
+    color: white;
+}
+
+.text-3xl {
+    font-size: 1.875rem; /* Adjust size as needed */
+}
