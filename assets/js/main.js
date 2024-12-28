@@ -478,7 +478,7 @@ function App() {
                     <div id="gallery" className={`grid grid-cols-3 gap-4 ${galleryVisible ? '' : 'hidden'}`}>
                         {mediaElements.map((media, index) => (
                             media.url ? (
-                            <div key={index} className="w-full sm:w-1/2 md:w-1/3 p-2 cursor-pointer aspect-w-1 aspect-h-1" onClick={() => openModal(media.url, media.type)}>
+                            <div key={index} className="gallery-item cursor-pointer" onClick={() => openModal(media.url, media.type)}>
                                 {media.type.startsWith('image/') ? (
                                     <img src={media.url} alt="User  uploaded image" className="w-full h-full object-cover" />
                                 ) : (
