@@ -460,6 +460,7 @@ function App() {
                 <h1 className="text-4xl font-bold" onClick={() => {setPasswordModalVisible(true); setShowLockbox(false);}}>Lockbox</h1>
                                 <button onClick={outputDatabase} className="text-white"><i className="fas fa-database mr-2"></i></button>
                                 <button onClick={clearDatabase} className="text-white"><i className="fas fa-trash mr-2"></i></button>
+                                <button className="text-white"><i className="fas fa-flask fa-bounce"></i></button>
                             </header>
                             <main className="flex-grow bg-gray-900 text-white">
 
