@@ -85,7 +85,8 @@
     overflow: hidden; /* Ensures that any overflow is hidden */
 }
 
-.gallery-item img {
+.gallery-item img,
+.gallery-item video {
     position: absolute;
     top: 0;
     left: 0;
