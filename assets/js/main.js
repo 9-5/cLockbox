@@ -174,7 +174,7 @@ function App() {
                     </div>
                 )}
                 <div className="fixed bottom-0 left-0 right-0 p-4 flex justify-center"> 
-                    <button className={`text-white font-bold py-2 px-4 rounded ${activeTab === 'timer' ? 'text-blue-500' : 'text-white'}`} onClick={() => setActiveTab('timer')}>
+                    <button className={`bg-transparent font-bold py-2 px-4 rounded ${activeTab === 'timer' ? 'text-blue-500' : 'text-white'}`} onClick={() => setActiveTab('timer')}>
                         <i className="fas fa-hourglass-start"></i>
                     </button>
                     <button className={`bg-transparent font-bold py-2 px-4 rounded ${activeTab === 'clock' ? 'text-blue-500' : 'text-white'}`} onClick={() => setActiveTab('clock')}>
