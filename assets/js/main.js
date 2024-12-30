@@ -33,6 +33,10 @@ function App() {
     const [showSettings, setShowSettings] = useState(false);
     const [showAbout, setShowAbout] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [exportData, setExportData] = useState([]);
+    const [importFile, setImportFile] = useState(null);
+
+    
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -284,6 +288,78 @@ function App() {
         request.onerror = (event) => {
             console.error('Database error:', event.target.errorCode);
         };
+    };
+
+    const exportDatabase = () => {
+        const mediaTransaction = db.transaction('clockSettings', 'readonly');
+        const mediaStore = mediaTransaction.objectStore('clockSettings');
+        const mediaRequest = mediaStore.getAll();
+    
+        mediaRequest.onsuccess = (event) => {
+            const mediaItems = event.target.result;
+    
+            const notesTransaction = db.transaction('clockThemes', 'readonly');
+            const notesStore = notesTransaction.objectStore('clockThemes');
+            const notesRequest = notesStore.getAll();
+    
+            notesRequest.onsuccess = (event) => {
+                const notesItems = event.target.result;
+                const nonMediaTransaction = db.transaction('timeZoneData', 'readonly');
+                const nonMediaStore = nonMediaTransaction.objectStore('timeZoneData');
+                const nonMediaRequest = nonMediaStore.getAll();
+    
+                nonMediaRequest.onsuccess = (event) => {
+                    const nonMediaItems = event.target.result;
+    
+                    const dataToExport = { media: mediaItems, nonMedia: nonMediaItems, notes: notesItems };
+                    setExportData(dataToExport);
+    
+                    const blob = new Blob([JSON.stringify(dataToExport)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'database_export.clk';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                };
+            };
+        };
+    };
+
+    const handleInputFileChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const importedData = JSON.parse(e.target.result);
+                importDatabase(importedData);
+            };
+            reader.readAsText(file);
+        }
+    };
+
+    const importDatabase = (importedData) => {
+        const mediaTransaction = db.transaction('clockSettings', 'readwrite');
+        const mediaStore = mediaTransaction.objectStore('clockSettings');
+        importedData.media.forEach(media => {
+            mediaStore.add(media);
+        });
+        
+        const nonMediaTransaction = db.transaction('timeZoneData', 'readwrite');
+        const nonMediaStore = nonMediaTransaction.objectStore('timeZoneData');
+        importedData.nonMedia.forEach(nonMedia => {
+            nonMediaStore.add(nonMedia);
+        });
+
+        const notesTransaction = db.transaction('clockThemes', 'readwrite');
+        const notesStore = notesTransaction.objectStore('clockThemes');
+        importedData.notes.forEach(note => {
+            notesStore.add(note);
+        });
+    
+        loadMedia();
+        loadNonMedia();
+        loadNotes();
     };
 
     const resetToDefaults = () => {
@@ -603,37 +679,42 @@ function App() {
             
             <div className="w-full h-full bg-gray-900 text-white">
                 {showSettings && (
-                <div className="settings-container">
-                <h2 className="text-2xl font-semibold">Lockbox Settings</h2>
-                <button className="btn btn-primary" onClick={openSettings}><i className="fas fa-arrow-left"></i> Back to Lockbox</button>
-                
-                <div className="mt-4">
-                    <label className="mr-2">Theme</label>
-                    <select 
-                        value={currentTheme} 
-                        onChange={(e) => setCurrentTheme(e.target.value)}
-                        className="mt-2 w-full p-2 bg-gray-700 text-white rounded"
-                    >
-                        {themes.map((theme, index) => (
-                            <option key={index} value={theme.name}>
-                                {theme.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div className="flex items-center mt-4">
-                    <button 
-                        className="bg-red-700 text-white font-bold py-2 px-4 rounded" 
-                        onClick={resetToDefaults}
-                    >
-                        Clear Database
-                    </button>
-                    <button
-                    className="bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
-                    onClick={setSetPasswordModalVisibleState}
-                    >Set Password</button>
-                </div>
-            </div>
+                    <div className="settings-container">
+                        <h2 className="text-2xl font-semibold">Lockbox Settings</h2>
+                        <button className="btn btn-primary" onClick={openSettings}><i className="fas fa-arrow-left"></i> Back to Lockbox</button>
+                        <div className="mt-4">
+                            <label className="mr-2">Theme</label>
+                            <select 
+                                value={currentTheme} 
+                                onChange={(e) => setCurrentTheme(e.target.value)}
+                                className="mt-2 w-full p-2 bg-gray-700 text-white rounded"
+                            >
+                                {themes.map((theme, index) => (
+                                    <option key={index} value={theme.name}>
+                                        {theme.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex items-center mt-4">
+                            <button 
+                                className="bg-red-700 text-white font-bold py-2 px-4 rounded" 
+                                onClick={resetToDefaults}
+                            >
+                                Clear Database
+                            </button>
+                            <button
+                            className="bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
+                            onClick={setSetPasswordModalVisibleState}
+                            >Set Password</button>
+                        </div>
+                        <div className="flex items-center mt-4">
+                            <button className="bg-blue-500 text-white font-bold py-2 px-4 rounded mr-2" onClick={exportDatabase}>
+                                Export Database
+                            </button>
+                            <input type="file" accept=".clk" onChange={handleInputFileChange} className="bg-gray-700 text-white rounded p-2" />
+                        </div>
+                    </div>
                 )}
                 <header className="w-screen text-center mb-8 bg-gray-900 text-white">
                 <h1 className="text-4xl font-bold" onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}}>Lockbox</h1>
