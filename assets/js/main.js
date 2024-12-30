@@ -11,8 +11,6 @@ function App() {
     const [setPasswordState, setSetPasswordState] = useState('');
     const [galleryVisible, setGalleryVisible] = useState(true);
     const [filesVisible, setFilesVisible] = useState(false);
-    const [notesVisible, setNotesVisible] = useState(false);
-    const [notes, setNotes] = useState([]);
     const [db, setDb] = useState(null);
     const [toastVisible, setToastVisible] = useState(false);
     const [nonMediaElements, setNonMediaElements] = useState([]);
@@ -252,7 +250,6 @@ function App() {
         if (db) {
             loadMedia();
             loadNonMedia();
-            loadNotes();
         }
     }, [db]);
 
@@ -298,30 +295,24 @@ function App() {
         mediaRequest.onsuccess = (event) => {
             const mediaItems = event.target.result;
     
-            const notesTransaction = db.transaction('clockThemes', 'readonly');
-            const notesStore = notesTransaction.objectStore('clockThemes');
-            const notesRequest = notesStore.getAll();
-    
-            notesRequest.onsuccess = (event) => {
-                const notesItems = event.target.result;
-                const nonMediaTransaction = db.transaction('timeZoneData', 'readonly');
-                const nonMediaStore = nonMediaTransaction.objectStore('timeZoneData');
-                const nonMediaRequest = nonMediaStore.getAll();
-    
-                nonMediaRequest.onsuccess = (event) => {
-                    const nonMediaItems = event.target.result;
-    
-                    const dataToExport = { media: mediaItems, nonMedia: nonMediaItems, notes: notesItems };
-                    setExportData(dataToExport);
-    
-                    const blob = new Blob([JSON.stringify(dataToExport)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'database_export.clk';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                };
+
+            const nonMediaTransaction = db.transaction('timeZoneData', 'readonly');
+            const nonMediaStore = nonMediaTransaction.objectStore('timeZoneData');
+            const nonMediaRequest = nonMediaStore.getAll();
+
+            nonMediaRequest.onsuccess = (event) => {
+                const nonMediaItems = event.target.result;
+
+                const dataToExport = { media: mediaItems, nonMedia: nonMediaItems };
+                setExportData(dataToExport);
+
+                const blob = new Blob([JSON.stringify(dataToExport)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'clockConfig.clk';
+                a.click();
+                URL.revokeObjectURL(url);
             };
         };
     };
@@ -351,23 +342,13 @@ function App() {
             nonMediaStore.add(nonMedia);
         });
 
-        const notesTransaction = db.transaction('clockThemes', 'readwrite');
-        const notesStore = notesTransaction.objectStore('clockThemes');
-        importedData.notes.forEach(note => {
-            notesStore.add(note);
-        });
-    
         loadMedia();
         loadNonMedia();
-        loadNotes();
     };
 
     const resetToDefaults = () => {
-        const request = indexedDB.open('clockData', 2);
-        request.onsuccess = (event) => {
-            clearDatabase();
-        }
-
+        indexedDB.deleteDatabase('clockData');
+        localStorage.clear('clockSessionID');
         setIsAnalogClockEnabled(true);
         setCurrentTheme('Ocean');
     };
@@ -416,17 +397,6 @@ function App() {
         request.onerror = (event) => {
             console.error(`Error loading non-media: ${event.target.errorCode}`);
         }
-    };
-
-    const loadNotes = () => {
-        const transaction = db.transaction('clockThemes', 'readonly');
-        const objectStore = transaction.objectStore('clockThemes');
-        const request = objectStore.getAll();
-
-        request.onsuccess = (event) => {
-            const notesItems = event.target.result;
-            setNotes(notesItems);
-        };
     };
 
     const encryptData = async (data) => {
@@ -572,15 +542,6 @@ function App() {
         }
     };
 
-    const addNote = (noteContent) => {
-        const transaction = db.transaction('clockThemes', 'readwrite');
-        const store = transaction.objectStore('clockThemes');
-        const note = { content: noteContent };
-        store.add(note);
-        loadNotes();
-    };  
-
-
     const handleSetPasswordSubmit = async () => {
         if (setPasswordState) {
             const hash = await hashPassword(setPasswordState);
@@ -591,36 +552,9 @@ function App() {
         }
     };
 
-    const createNote = () => {
-        const newNote = { id: Date.now(), content: '', timestamp: Date.now() };
-        setNotes(prev => [...prev, newNote]);
-        saveNoteToDB(newNote);
-    };
-
-
-    const saveNoteToDB = (note) => {
-        const transaction = db.transaction('clockThemes', 'readwrite');
-        const objectStore = transaction.objectStore('clockThemes');
-        objectStore.add(note);
-    };
-
-    const updateNote = (id, newContent) => {
-        const transaction = db.transaction('clockThemes', 'readwrite');
-        const store = transaction.objectStore('clockThemes');
-        const request = store.get(id);
-
-        request.onsuccess = (event) => {
-            const note = event.target.result;
-            note.content = newContent;
-            store.put(note);
-            loadNotes();
-        };
-    };
-
     const handleTabClick = (tab) => {
         setGalleryVisible(tab === 'gallery');
         setFilesVisible(tab === 'files');
-        setNotesVisible(tab === 'clockThemes');
         
         const tabIndex = tab === 'gallery' ? 0 : tab === 'files' ? 1 : 2;
         setActiveTabIndex(tabIndex);
@@ -638,36 +572,24 @@ function App() {
                 console.log(`ID: ${item.id}, URL: ${item.url}, Type: ${item.type}`);
             });
         };
-
-        const notesTransaction = db.transaction('clockThemes', 'readonly');
-        const notesStore = notesTransaction.objectStore('clockThemes');
-        const notesRequest = notesStore.getAll();
-
-        notesRequest.onsuccess = (event) => {
-            const notesItems = event.target.result;
-            console.log('Notes Items:');
-            notesItems.forEach(note => {
-                console.log(`ID: ${note.id}, Content: ${note.content}`);
-            });
-        };
     };
 
     const clearDatabase = () => {
         const mediaTransaction = db.transaction('clockSettings', 'readwrite');
         const mediaStore = mediaTransaction.objectStore('clockSettings');
-        const notesTransaction = db.transaction('clockThemes', 'readwrite');
-        const notesStore = notesTransaction.objectStore('clockThemes');
+        const nonMediaTransaction = db.transaction('timeZoneData', 'readwrite');
+        const nonMediaStore = nonMediaTransaction.objectStore('timeZoneData');
 
         mediaStore.clear().onsuccess = () => {
-            console.log('Media store cleared');
+            console.log('Reset to default state.');
         };
 
-        notesStore.clear().onsuccess = () => {
-            console.log('Notes store cleared');
+        nonMediaStore.clear().onsuccess = () => {
+            console.log('Reset to default state.');
+        };
 
         loadMedia();
-        loadNotes();
-        };
+        loadNonMedia();
     };
 
     const openSettings = () => {
@@ -699,7 +621,7 @@ function App() {
                         <div className="flex items-center mt-4">
                             <button 
                                 className="bg-red-700 text-white font-bold py-2 px-4 rounded" 
-                                onClick={resetToDefaults}
+                                onClick={clearDatabase}
                             >
                                 Clear Database
                             </button>
@@ -729,11 +651,7 @@ function App() {
                     <div className="tabs mb-4">
                         <button id="galleryTab" className={`tab ${galleryVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('gallery')}>Gallery</button>
                         <button id="filesTab" className={`tab ${filesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('files')}>Files</button>
-                        <button id="notesTab" className={`tab ${notesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('clockThemes')}>Notes</button>
                         <div className="active-indicator" style={{ left: `${activeTabIndex * 100}%` }}></div>
-                    </div>
-                    <div className="mb-4">
-                        <button id="addNoteButton" className={`bg-blue-500 text-white p-2 rounded ${notesVisible ? '' : 'hidden'}`} onClick={createNote}>+ Add Note</button>
                     </div>
                     <div id="gallery" className={`grid grid-cols-3 gap-4 ${galleryVisible ? '' : 'hidden'}`}>
                         {mediaElements.map((media, index) => (
@@ -750,18 +668,6 @@ function App() {
                     </div>
                     <div id="files" className={`grid grid-cols-3 gap-4 ${filesVisible ? '' : 'hidden'}`}>
                         {renderNonMediaFiles()}
-                    </div>
-                    <div id="notes" className={`grid grid-cols-3 gap-4 ${notesVisible ? '' : 'hidden'}`}>
-                        {notes.map((note, index) => (
-                            <div key={note.id} className="note-item p-2 border rounded flex flex-col space-y-2 bg-gray-800">
-                                <textarea 
-                                    value={note.content} 
-                                    onChange={(e) => updateNote(note.id, e.target.value)}
-                                    className="w-full h-24 p-2 border border-gray-600 bg-gray-700 text-white"
-                                    placeholder="Type your note here..."
-                                />
-                            </div>
-                        ))}
                     </div>
                 </main>
                 {modalVisible && (
