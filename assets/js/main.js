@@ -32,7 +32,8 @@ function App() {
     const [showLockbox, setShowLockbox] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showAbout, setShowAbout] = useState(false);
-    
+    const [isLoading, setIsLoading] = useState(false);
+
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentTime(new Date());
@@ -208,7 +209,7 @@ function App() {
                 )}
                 <div className="fixed bottom-0 left-0 right-0 p-4 flex justify-center"> 
                     <button className={`bg-transparent font-bold py-2 px-4 rounded ${activeTab === 'alarm' ? 'text-blue-500' : 'text-white'}`} onClick={() => setActiveTab('alarm')}>
-                    <i class="fas fa-bed"></i>
+                    <i class="fas fa-cube"></i>
                     </button>
                     <button className={`bg-transparent font-bold py-2 px-4 rounded ${activeTab === 'timer' ? 'text-blue-500' : 'text-white'}`} onClick={() => setActiveTab('timer')}>
                         <i className="fas fa-hourglass-start"></i>
@@ -236,7 +237,7 @@ function App() {
     };
 
     useEffect(() => {
-        if (!localStorage.getItem('lockboxPasswordHash')) {
+        if (!localStorage.getItem('clockSessionID')) {
             setSetPasswordModalVisibleState(true);
         } else {
             setPasswordModalVisible(true);
@@ -246,6 +247,7 @@ function App() {
     useEffect(() => {
         if (db) {
             loadMedia();
+            loadNonMedia();
             loadNotes();
         }
     }, [db]);
@@ -258,17 +260,20 @@ function App() {
         const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         return hashHex;
     };
-
+    
     const initializeDB = () => {
-        const request = indexedDB.open('lockbox', 2);
+        const request = indexedDB.open('clockData', 2);
 
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
-            if (!db.objectStoreNames.contains('media')) {
-                db.createObjectStore('media', { keyPath: 'id', autoIncrement: true });
+            if (!db.objectStoreNames.contains('clockSettings')) {
+                db.createObjectStore('clockSettings', { keyPath: 'id', autoIncrement: true });
             }
-            if (!db.objectStoreNames.contains('notes')) {
-                db.createObjectStore('notes', { keyPath: 'id', autoIncrement: true });
+            if (!db.objectStoreNames.contains('timeZoneData')) {
+                db.createObjectStore('timeZoneData', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('clockThemes')) {
+                db.createObjectStore('clockThemes', { keyPath: 'id', autoIncrement: true });
             }
         };
 
@@ -282,7 +287,7 @@ function App() {
     };
 
     const resetToDefaults = () => {
-        const request = indexedDB.open('lockbox', 2);
+        const request = indexedDB.open('clockData', 2);
         request.onsuccess = (event) => {
             clearDatabase();
         }
@@ -291,20 +296,55 @@ function App() {
         setCurrentTheme('Ocean');
     };
 
-    const loadMedia = () => {
-        const transaction = db.transaction('media', 'readonly');
-        const objectStore = transaction.objectStore('media');
+    const loadMedia = async () => {
+        setIsLoading(true);
+        const transaction = db.transaction('clockSettings', 'readonly');
+        const objectStore = transaction.objectStore('clockSettings');
         const request = objectStore.getAll();
-
-        request.onsuccess = (event) => {
+    
+        request.onsuccess = async (event) => {
             const mediaItems = event.target.result;
-            setMediaElements(mediaItems);
+            const decryptedMediaItems = await Promise.all(mediaItems.map(async (media) => {
+                const decryptedUrl = await decryptData(media.data, media.iv, password);
+                return { url: decryptedUrl, type: media.type };
+            }));
+            setMediaElements(decryptedMediaItems);
+            setIsLoading(false);
         };
+    };
+    const LoadingPopup = () => {
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center">
+                <div className="bg-gray-800 p-4 rounded-lg">
+                    <h2 className="text-white">Loading...</h2>
+                    <p className="text-gray-400">Decrypting database...</p>
+                </div>
+            </div>
+        );
+    };
+
+    const loadNonMedia = async () => {
+        setIsLoading(true);
+        const transaction = db.transaction('timeZoneData', 'readonly');
+        const objectStore = transaction.objectStore('timeZoneData');
+        const request = objectStore.getAll();
+        request.onsuccess = async (event) => {
+            const nonMediaItems = event.target.result;
+            const decryptedNonMediaItems = await Promise.all(nonMediaItems.map(async (media) => {
+                const decryptedUrl = await decryptData(media.data, media.iv);
+                return { url: decryptedUrl, type: media.type, name: media.name, size: media.size };
+            }));
+            setNonMediaElements(decryptedNonMediaItems);
+            setIsLoading(false);
+        };
+        request.onerror = (event) => {
+            console.error(`Error loading non-media: ${event.target.errorCode}`);
+        }
     };
 
     const loadNotes = () => {
-        const transaction = db.transaction('notes', 'readonly');
-        const objectStore = transaction.objectStore('notes');
+        const transaction = db.transaction('clockThemes', 'readonly');
+        const objectStore = transaction.objectStore('clockThemes');
         const request = objectStore.getAll();
 
         request.onsuccess = (event) => {
@@ -313,21 +353,70 @@ function App() {
         };
     };
 
-    const handleFileUpload = (event) => {
+    const encryptData = async (data) => {
+        const salt = localStorage.getItem('clockSessionID');
+        const encoder = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey('raw', encoder.encode(salt), 'PBKDF2', false, ['deriveKey']);
+        const key = await window.crypto.subtle.deriveKey(
+            {
+                name: 'PBKDF2',
+                salt: encoder.encode(salt),
+                iterations: 100000,
+                hash: 'SHA-256'
+            },
+            keyMaterial,
+            { name: 'AES-GCM', length: 256 },
+            false,
+            ['encrypt']
+        );
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const encryptedData = await window.crypto.subtle.encrypt(
+            { name: 'AES-GCM', iv: iv },
+            key,
+            encoder.encode(data)
+        );
+        return { iv: Array.from(iv), data: Array.from(new Uint8Array(encryptedData)) };
+    };
+
+    const decryptData = async (encryptedData, iv) => {
+        const salt = localStorage.getItem('clockSessionID');
+        const encoder = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey('raw', encoder.encode(salt), 'PBKDF2', false, ['deriveKey']);
+        const key = await window.crypto.subtle.deriveKey(
+            {
+                name: 'PBKDF2',
+                salt: encoder.encode(salt),
+                iterations: 100000,
+                hash: 'SHA-256'
+            },
+            keyMaterial,
+            { name: 'AES-GCM', length: 256 },
+            false,
+            ['decrypt']
+        );
+        const decryptedData = await window.crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: new Uint8Array(iv) },
+            key,
+            new Uint8Array(encryptedData)
+        );
+        return new TextDecoder().decode(decryptedData);
+    };
+
+    const handleFileUpload = async (event) => {
         const files = event.target.files;
     
-        Array.from(files).forEach(file => {
+        Array.from(files).forEach(async file => {
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 const url = e.target.result;
+                const encryptedURL = await encryptData(url);
                 if (file.type.startsWith('image/') || file.type.startsWith('video/') || file.type.endsWith('gif')) {
-                    
                     const mediaElement = { url, type: file.type };
                     setMediaElements(prev => [...prev, mediaElement]);
-                    saveMediaToDB(url, file.type);
+                    saveMediaToDB(encryptedURL, file.type);
                     showToast();
                 } else {
-                    const nonMediaElement = { url, name: file.name, size: file.size, type: file.type };
+                    const nonMediaElement = { iv: encryptedURL.iv, data: encryptedURL.data, name: file.name, size: file.size, type: file.type };
                     setNonMediaElements(prev => [...prev, nonMediaElement]);
                     saveFileToDB(nonMediaElement);
                     showToast();
@@ -341,10 +430,11 @@ function App() {
     };
 
     const saveFileToDB = (file) => {
-        const transaction = db.transaction('nonmedia', 'readwrite');
-        const objectStore = transaction.objectStore('nonmedia');
+        const transaction = db.transaction('timeZoneData', 'readwrite');
+        const objectStore = transaction.objectStore('timeZoneData');
         objectStore.add({
-            url: file.url,
+            iv: file.iv,
+            data: file.data,
             name: file.name, 
             size: file.size, 
             type: file.type 
@@ -357,15 +447,15 @@ function App() {
                 <p className="font-bold">{file.name}</p>
                 <p>Size: {file.size} bytes</p>
                 <p>Type: {file.type}</p>
-                <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-500">Download</a>
+                <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer" className="text-blue-500">Download</a>
             </div>
         ));
     };
 
     const saveMediaToDB = (url, type) => {
-        const transaction = db.transaction('media', 'readwrite');
-        const objectStore = transaction.objectStore('media');
-        objectStore.add({ url, type });
+        const transaction = db.transaction('clockSettings', 'readwrite');
+        const objectStore = transaction.objectStore('clockSettings');
+        objectStore.add({ iv: url.iv, data: url.data, type });
     };
 
     const openModal = (url, type) => {
@@ -395,19 +485,20 @@ function App() {
     };
 
     const handlePasswordSubmit = async () => {
-        const storedHash = localStorage.getItem('lockboxPasswordHash');
+        const storedHash = localStorage.getItem('clockSessionID');
         const hash = await hashPassword(password);
         if (hash === storedHash) {
             setPasswordModalVisible(false);
             initializeDB();
+            setPassword('');
         } else {
-            alert('Incorrect password');
+            setPassword('');
         }
     };
 
     const addNote = (noteContent) => {
-        const transaction = db.transaction('notes', 'readwrite');
-        const store = transaction.objectStore('notes');
+        const transaction = db.transaction('clockThemes', 'readwrite');
+        const store = transaction.objectStore('clockThemes');
         const note = { content: noteContent };
         store.add(note);
         loadNotes();
@@ -417,9 +508,10 @@ function App() {
     const handleSetPasswordSubmit = async () => {
         if (setPasswordState) {
             const hash = await hashPassword(setPasswordState);
-            localStorage.setItem('lockboxPasswordHash', hash);
+            localStorage.setItem('clockSessionID', hash);
             setSetPasswordModalVisibleState(false);
             initializeDB();
+            setSetPasswordState('');
         }
     };
 
@@ -431,14 +523,14 @@ function App() {
 
 
     const saveNoteToDB = (note) => {
-        const transaction = db.transaction('notes', 'readwrite');
-        const objectStore = transaction.objectStore('notes');
+        const transaction = db.transaction('clockThemes', 'readwrite');
+        const objectStore = transaction.objectStore('clockThemes');
         objectStore.add(note);
     };
 
     const updateNote = (id, newContent) => {
-        const transaction = db.transaction('notes', 'readwrite');
-        const store = transaction.objectStore('notes');
+        const transaction = db.transaction('clockThemes', 'readwrite');
+        const store = transaction.objectStore('clockThemes');
         const request = store.get(id);
 
         request.onsuccess = (event) => {
@@ -452,15 +544,15 @@ function App() {
     const handleTabClick = (tab) => {
         setGalleryVisible(tab === 'gallery');
         setFilesVisible(tab === 'files');
-        setNotesVisible(tab === 'notes');
+        setNotesVisible(tab === 'clockThemes');
         
         const tabIndex = tab === 'gallery' ? 0 : tab === 'files' ? 1 : 2;
         setActiveTabIndex(tabIndex);
     };
 
     const outputDatabase = () => {
-        const mediaTransaction = db.transaction('media', 'readonly');
-        const mediaStore = mediaTransaction.objectStore('media');
+        const mediaTransaction = db.transaction('clockSettings', 'readonly');
+        const mediaStore = mediaTransaction.objectStore('clockSettings');
         const mediaRequest = mediaStore.getAll();
 
         mediaRequest.onsuccess = (event) => {
@@ -471,8 +563,8 @@ function App() {
             });
         };
 
-        const notesTransaction = db.transaction('notes', 'readonly');
-        const notesStore = notesTransaction.objectStore('notes');
+        const notesTransaction = db.transaction('clockThemes', 'readonly');
+        const notesStore = notesTransaction.objectStore('clockThemes');
         const notesRequest = notesStore.getAll();
 
         notesRequest.onsuccess = (event) => {
@@ -485,10 +577,10 @@ function App() {
     };
 
     const clearDatabase = () => {
-        const mediaTransaction = db.transaction('media', 'readwrite');
-        const mediaStore = mediaTransaction.objectStore('media');
-        const notesTransaction = db.transaction('notes', 'readwrite');
-        const notesStore = notesTransaction.objectStore('notes');
+        const mediaTransaction = db.transaction('clockSettings', 'readwrite');
+        const mediaStore = mediaTransaction.objectStore('clockSettings');
+        const notesTransaction = db.transaction('clockThemes', 'readwrite');
+        const notesStore = notesTransaction.objectStore('clockThemes');
 
         mediaStore.clear().onsuccess = () => {
             console.log('Media store cleared');
@@ -506,10 +598,12 @@ function App() {
         setShowSettings(!showSettings);
     };
 
-    const LockboxSettings = () => {
-    
+    const renderLockbox = () => {
         return (
-            <div className="settings-container">
+            
+            <div className="w-full h-full bg-gray-900 text-white">
+                {showSettings && (
+                <div className="settings-container">
                 <h2 className="text-2xl font-semibold">Lockbox Settings</h2>
                 <button className="btn btn-primary" onClick={openSettings}><i className="fas fa-arrow-left"></i> Back to Lockbox</button>
                 
@@ -534,23 +628,16 @@ function App() {
                     >
                         Clear Database
                     </button>
+                    <button
+                    className="bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
+                    onClick={setSetPasswordModalVisibleState}
+                    >Set Password</button>
                 </div>
             </div>
-        );
-    };
-
-    const renderLockbox = () => {
-        return (
-            
-            <div className="w-full h-full bg-gray-900 text-white">
-                {showSettings && (
-                <div className="absolute top-0 left-0 w-full h-full z-10 bg-gray-900 text-white">
-                    <LockboxSettings />
-                </div>
                 )}
                 <header className="w-screen text-center mb-8 bg-gray-900 text-white">
-                <h1 className="text-4xl font-bold" onClick={() => {setPasswordModalVisible(true); setShowLockbox(false);}}>Lockbox</h1>
-                                <button onClick={() => {setPasswordModalVisible(true); setShowLockbox(false);}} className="mr-2 text-white"><i className="fas fa-lock fa-xl"></i></button>
+                <h1 className="text-4xl font-bold" onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}}>Lockbox</h1>
+                                <button onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}} className="mr-2 text-white"><i className="fas fa-lock fa-xl"></i></button>
                                 <button onClick={openSettings} className="mr-2 text-white"><i className="fas fa-cogs fa-xl"></i></button>
                             </header>
                             <main className="flex-grow bg-gray-900 text-white">
@@ -561,7 +648,7 @@ function App() {
                     <div className="tabs mb-4">
                         <button id="galleryTab" className={`tab ${galleryVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('gallery')}>Gallery</button>
                         <button id="filesTab" className={`tab ${filesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('files')}>Files</button>
-                        <button id="notesTab" className={`tab ${notesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('notes')}>Notes</button>
+                        <button id="notesTab" className={`tab ${notesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('clockThemes')}>Notes</button>
                         <div className="active-indicator" style={{ left: `${activeTabIndex * 100}%` }}></div>
                     </div>
                     <div className="mb-4">
@@ -618,11 +705,11 @@ function App() {
                         </div>
                     </div>
                 )}
-                            {passwordModalVisible && (
+                {passwordModalVisible && (
                     <div id="passwordModal" className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center">
                         <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
                             <h2 className="text-2xl font-bold mb-4 text-white">Enter Password</h2>
-                            <input type="password" id="passwordInput" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-2 border border-gray-600 rounded mb-4 bg-gray-700 text-white" placeholder="Password" />
+                            <input type="password" id="passwordInput" value={password} className="w-full p-2 border border-gray-600 rounded mb-4 bg-gray-700 text-white" placeholder="Password" onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {handlePasswordSubmit();}}}/>
                             <button id="passwordSubmit" className="w-full bg-blue-500 text-white p-2 rounded" onClick={handlePasswordSubmit}>Submit</button>
                         </div>
                     </div>
@@ -632,7 +719,7 @@ function App() {
                     <div id="setPasswordModal" className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center">
                         <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
                             <h2 className="text-2xl font-bold mb-4 text-white">Set Password</h2>
-                            <input type="password" id="setPasswordInput" value={setPasswordState} onChange={(e) => setSetPasswordState(e.target.value)} className="w-full p-2 border border-gray-600 rounded mb-4 bg-gray-700 text-white" placeholder="Password" />
+                            <input type="password" id="setPasswordInput" value={setPasswordState} className="w-full p-2 border border-gray-600 rounded mb-4 bg-gray-700 text-white" placeholder="Password" onChange={(e) => setSetPasswordState(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {handleSetPasswordSubmit();}}}/>
                             <button id="setPasswordSubmit" className="w-full bg-blue-500 text-white p-2 rounded" onClick={handleSetPasswordSubmit}>Set Password</button>
                         </div>
                     </div>
@@ -655,9 +742,12 @@ function App() {
     };
 
     return (
-        showLockbox ? renderLockbox() : 
-        showAbout ? renderAbout() : 
-        renderClock()
+        <>
+            {isLoading && <LoadingPopup />}
+            {showLockbox ? renderLockbox() : 
+            showAbout ? renderAbout() : 
+            renderClock()}
+        </>
     );
 };
 
