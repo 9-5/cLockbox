@@ -1,6 +1,7 @@
 <p align="center"><img src="assets\cLockbox.png" height="250" width="250"/></p>
 
-# cLockbox - A clock with a lockbox. cLockbox
+# A clock with a lockbox. 
+# cLockbox
 
 cLockbox is a unique take on the traditional clock. It combines the functionality of a clock with the security of a lockbox. This lockbox is able to store files, images/videos, and notes hosted directly within the user's browser (nothing is sent to a server!).
 
