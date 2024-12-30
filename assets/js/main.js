@@ -24,11 +24,15 @@ function App() {
     const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
     const [laps, setLaps] = useState([]);
     const [activeTab, setActiveTab] = useState('clock');
+    const [isAnalogClockEnabled, setIsAnalogClockEnabled] = useState(() => {return localStorage.getItem('clkEnabled') === 'true';});
+    const themes = [{ name: 'Ocean', className: '' }, { name: 'Sky', className: 'sky' }, { name: 'Forest', className: 'forest' }, { name: 'Bamboo', className: 'bamboo' }, { name: 'Crimson', className: 'crimson' }, { name: 'Blush', className: 'blush' }, { name: 'Petal', className: 'petal' }, { name: 'Lotus', className: 'lotus' }, { name: 'Amethyst', className: 'amethyst' }];
+    const [currentTheme, setCurrentTheme] = useState(() => {return localStorage.getItem('theme') || 'Ocean';});
     const [trackHourClicks, setTrackedHourClicks] = useState(0);
     const [trackMinuteClicks, setTrackedMinuteClicks] = useState(0);
     const [showLockbox, setShowLockbox] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
     const [showAbout, setShowAbout] = useState(false);
-
+    
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentTime(new Date());
@@ -55,6 +59,16 @@ function App() {
         }
         return () => clearInterval(stopwatchInterval);
     }, [isStopwatchRunning]);
+
+    useEffect(() => {
+        localStorage.setItem('clkEnabled', isAnalogClockEnabled);
+        localStorage.setItem('theme', currentTheme);
+    }, [isAnalogClockEnabled, currentTheme]);
+
+    useEffect(() => {
+        document.body.className = currentTheme === 'Ocean' ? '' : currentTheme.toLowerCase();
+        localStorage.setItem('theme', currentTheme);
+    }, [currentTheme]);
 
     const formatTime = (time) => {
         const minutes = Math.floor(time / 60);
@@ -85,18 +99,6 @@ function App() {
           };
     };
 
-
-    function setDate() {
-        const now = new Date();
-    
-        const minutes = now.getMinutes();
-        const minutesDegrees = ((minutes / 60) * 360) + ((seconds / 60) * 6) + 90;
-        minuteHand.style.transform = `rotate(${minutesDegrees}deg)`;
-    
-        const hours = now.getHours();
-        const hoursDegrees = ((hours / 12) * 360) + ((minutes / 60) * 30) + 90;
-        hourHand.style.transform = `rotate(${hoursDegrees}deg)`;
-    }
     const { secondHand, minuteHand, hourHand } = getClockHandsStyle();
 
     const handleHourHandClick = () => {
@@ -120,16 +122,18 @@ function App() {
             return newCount;
         });
     };
-
+    
     const renderClock = () => {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
             <div className="mb-8">
-                <div className="clock">
-                    <div className="hand hour" style={hourHand} onClick={() => handleHourHandClick()}></div>
-                    <div className="hand minute" style={minuteHand} onClick={() => handleMinuteHandClick()}></div>
-                    <div className="hand second" style={secondHand}></div>
-                </div>
+                {isAnalogClockEnabled && (
+                    <div className="clock">
+                        <div className="hand hour" style={hourHand} onClick={() => handleHourHandClick()}></div>
+                        <div className="hand minute" style={minuteHand} onClick={() => handleMinuteHandClick()}></div>
+                        <div className="hand second" style={secondHand}></div>
+                    </div>
+                )}
             </div>
             <div className="text-center">
                 {activeTab === 'clock' && (
@@ -173,7 +177,39 @@ function App() {
                         </div>
                     </div>
                 )}
+                {activeTab === 'settings' && (
+                    <div className="mb-8">
+                        <h2 className="text-2xl font-semibold">Settings</h2>
+                        <div className="mt-4">
+                            <div className="flex">
+                                <label className="mr-2 mt-4">Theme</label>
+                                <select 
+                                    className="mt-2 w-full p-2 bg-gray-700 text-white rounded" 
+                                    style={{ 'text-align': 'center' }}
+                                    value={currentTheme} 
+                                    onChange={(e) => setCurrentTheme(e.target.value)}
+                                >
+                                    {themes.map((theme, index) => (
+                                        <option key={index} value={theme.name}>
+                                            {theme.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex items-center">
+                                <label className="mr-2">Enable Analog Clock</label>
+                                <input type="checkbox" checked={isAnalogClockEnabled} onChange={() => setIsAnalogClockEnabled(!isAnalogClockEnabled)} />
+                            </div>
+                            <div className="flex items-center">
+                                <button className="bg-red-700 text-white font-bold py-2 px-4 rounded mr-2" onClick={() => {resetToDefaults();}}>Reset to Defaults</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <div className="fixed bottom-0 left-0 right-0 p-4 flex justify-center"> 
+                    <button className={`bg-transparent font-bold py-2 px-4 rounded ${activeTab === 'alarm' ? 'text-blue-500' : 'text-white'}`} onClick={() => setActiveTab('alarm')}>
+                    <i class="fas fa-bed"></i>
+                    </button>
                     <button className={`bg-transparent font-bold py-2 px-4 rounded ${activeTab === 'timer' ? 'text-blue-500' : 'text-white'}`} onClick={() => setActiveTab('timer')}>
                         <i className="fas fa-hourglass-start"></i>
                     </button>
@@ -182,6 +218,9 @@ function App() {
                     </button>
                     <button className={`bg-transparent font-bold py-2 px-4 rounded ${activeTab === 'stopwatch' ? 'text-blue-500' : 'text-white'}`} onClick={() => setActiveTab('stopwatch')}>
                         <i className="fas fa-stopwatch"></i>
+                    </button>
+                    <button className={`bg-transparent font-bold py-2 px-4 rounded ${activeTab === 'settings' ? 'text-blue-500' : 'text-white'}`} onClick={() => setActiveTab('settings')}>
+                        <i className="fas fa-cog"></i>
                     </button>
                 </div>
             </div>
@@ -240,6 +279,16 @@ function App() {
         request.onerror = (event) => {
             console.error('Database error:', event.target.errorCode);
         };
+    };
+
+    const resetToDefaults = () => {
+        const request = indexedDB.open('lockbox', 2);
+        request.onsuccess = (event) => {
+            clearDatabase();
+        }
+
+        setIsAnalogClockEnabled(true);
+        setCurrentTheme('Ocean');
     };
 
     const loadMedia = () => {
@@ -453,14 +502,56 @@ function App() {
         };
     };
 
+    const openSettings = () => {
+        setShowSettings(!showSettings);
+    };
+
+    const LockboxSettings = () => {
+    
+        return (
+            <div className="settings-container">
+                <h2 className="text-2xl font-semibold">Lockbox Settings</h2>
+                <button className="btn btn-primary" onClick={openSettings}><i className="fas fa-arrow-left"></i> Back to Lockbox</button>
+                
+                <div className="mt-4">
+                    <label className="mr-2">Theme</label>
+                    <select 
+                        value={currentTheme} 
+                        onChange={(e) => setCurrentTheme(e.target.value)}
+                        className="mt-2 w-full p-2 bg-gray-700 text-white rounded"
+                    >
+                        {themes.map((theme, index) => (
+                            <option key={index} value={theme.name}>
+                                {theme.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="flex items-center mt-4">
+                    <button 
+                        className="bg-red-700 text-white font-bold py-2 px-4 rounded" 
+                        onClick={resetToDefaults}
+                    >
+                        Clear Database
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
     const renderLockbox = () => {
-        return ( 
+        return (
+            
             <div className="w-full h-full bg-gray-900 text-white">
+                {showSettings && (
+                <div className="absolute top-0 left-0 w-full h-full z-10 bg-gray-900 text-white">
+                    <LockboxSettings />
+                </div>
+                )}
                 <header className="w-screen text-center mb-8 bg-gray-900 text-white">
                 <h1 className="text-4xl font-bold" onClick={() => {setPasswordModalVisible(true); setShowLockbox(false);}}>Lockbox</h1>
-                                <button onClick={outputDatabase} className="text-white"><i className="fas fa-database mr-2"></i></button>
-                                <button onClick={clearDatabase} className="text-white"><i className="fas fa-trash mr-2"></i></button>
-                                <button className="text-white"><i className="fas fa-flask fa-bounce"></i></button>
+                                <button onClick={() => {setPasswordModalVisible(true); setShowLockbox(false);}} className="mr-2 text-white"><i className="fas fa-lock fa-xl"></i></button>
+                                <button onClick={openSettings} className="mr-2 text-white"><i className="fas fa-cogs fa-xl"></i></button>
                             </header>
                             <main className="flex-grow bg-gray-900 text-white">
 
@@ -548,6 +639,7 @@ function App() {
                 )}
             </div>
         );
+        
     }
 
     const renderAbout = () => {
