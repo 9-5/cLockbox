@@ -1,13 +1,15 @@
-.toast {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #4caf50;
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
+::-webkit-scrollbar {
     display: none;
-    transition: opacity 0.5s;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #888;
 }
 .upload-button-container {
     display: flex;

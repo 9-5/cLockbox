@@ -16,8 +16,12 @@ function App() {
     const [nonMediaElements, setNonMediaElements] = useState([]);
     const [activeTabIndex, setActiveTabIndex] = useState(0);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [alarmTime, setAlarmTime] = useState('');
+    const [isAlarmActive, setIsAlarmActive] = useState(false);
+    const alarmSound = new Audio('assets/audio/alarm.mp3');
     const [timer, setTimer] = useState(1500);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const timerSound = new Audio('assets/audio/timer.mp3');
     const [stopwatch, setStopwatch] = useState(0);
     const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
     const [laps, setLaps] = useState([]);
@@ -33,8 +37,10 @@ function App() {
     const [isLoading, setIsLoading] = useState(false);
     const [exportData, setExportData] = useState([]);
     const [importFile, setImportFile] = useState(null);
-
-    
+    const [notesVisible, setNotesVisible] = useState(false);
+    const [notes, setNotes] = useState([]);
+    const [currentNote, setCurrentNote] = useState({ content: '' });
+    const [editNote, setEditNote] = useState(false);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -44,10 +50,32 @@ function App() {
     }, []);
 
     useEffect(() => {
+        if (isAlarmActive && alarmTime) {
+            const interval = setInterval(() => {
+                const now = new Date();
+                const [alarmHours, alarmMinutes] = alarmTime.split(':');
+                if (now.getHours() === parseInt(alarmHours) && now.getMinutes() === parseInt(alarmMinutes)) {
+                    alarmSound.play();
+                    setIsAlarmActive(false);
+                }
+            }, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [isAlarmActive, alarmTime]);
+
+    useEffect(() => {
         let timerInterval;
         if (isTimerRunning) {
             timerInterval = setInterval(() => {
-                setTimer(prev => prev > 0 ? prev - 1 : 0);
+                setTimer((prev) => {
+                    if (prev > 0) {
+                        return prev - 1;
+                    } else {
+                        timerSound.play();
+                        setIsTimerRunning(false);
+                        return 0;
+                    }
+                });
             }, 1000);
         }
         return () => clearInterval(timerInterval);
@@ -77,6 +105,16 @@ function App() {
         const minutes = Math.floor(time / 60);
         const seconds = time % 60;
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
+
+    const handleSetAlarm = () => {
+        if (alarmTime) {
+            setIsAlarmActive(true);
+        }
+    };
+    
+    const handleCancelAlarm = () => {
+        setIsAlarmActive(false);
     };
 
     const formatStopwatch = (time) => {
@@ -139,6 +177,36 @@ function App() {
                 )}
             </div>
             <div className="text-center">
+                {activeTab === 'alarm' && (
+                    <div className="mb-8">
+                        <h2 className="text-2xl font-semibold">Alarm</h2>
+                        <div className="flex items-center justify-center mb-4">
+                            <input
+                                type="time"
+                                value={alarmTime}
+                                onChange={(e) => setAlarmTime(e.target.value)}
+                                className="w-30 p-2 bg-gray-700 text-white rounded mr-2"
+                            />
+                        </div>
+                        <div>
+                            <button
+                                className="bg-transparent hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                onClick={handleSetAlarm}
+                            >
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button
+                                className="bg-transparent hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                                onClick={handleCancelAlarm}
+                            >
+                                <i class="fas fa-ban"></i>
+                            </button>
+                        </div>
+                        {isAlarmActive && (
+                            <p className="text-xl">Alarm set for {alarmTime}</p>
+                        )}
+                    </div>
+                )}
                 {activeTab === 'clock' && (
                     <div className="mb-8">
                         <h2 className="text-2xl font-semibold">Current Time</h2>
@@ -147,12 +215,27 @@ function App() {
                 )}
                 {activeTab === 'timer' && (
                     <div className="mb-8">
-                        <h2 className="text-2xl font-semibold">Timer (Pomodoro)</h2>
+                        <h2 className="text-2xl font-semibold">Timer</h2>
+                        <div className="flex items-center justify-center mb-4">
+                            <input
+                                type="number"
+                                value={Math.floor(timer / 60)}
+                                onChange={(e) => setTimer(parseInt(e.target.value) * 60)}
+                                className="w-20 p-2 bg-gray-700 text-white rounded mr-2"
+                                placeholder="Minutes"
+                            />
+                            <button
+                                className="bg-transparent hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                onClick={() => setTimer(timer)}
+                            >
+                                <i class="fas fa-hourglass-half"></i>
+                            </button>
+                        </div>
                         <p className="text-xl">{formatTime(timer)}</p>
                         <button className="bg-transparent hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2" onClick={() => setIsTimerRunning(!isTimerRunning)}>
                             {isTimerRunning ? <i className="fas fa-pause"></i> : <i className="fas fa-play"></i>}
                         </button>
-                        <button className="bg-transparent hover:bg-red-700 text-white font-bold py-2 px-4 rounded" onClick={() => { setTimer(1500); setIsTimerRunning(false); }}>
+                        <button className="bg-transparent hover:bg-red-700 text-white font-bold py-2 px-4 rounded" onClick={() => { setTimer(timer); setIsTimerRunning(false); }}>
                             <i className="fas fa-redo"></i>
                         </button>
                     </div>
@@ -211,7 +294,7 @@ function App() {
                 )}
                 <div className="fixed bottom-0 left-0 right-0 p-4 flex justify-center"> 
                     <button className={`bg-transparent font-bold py-2 px-4 rounded ${activeTab === 'alarm' ? 'text-blue-500' : 'text-white'}`} onClick={() => setActiveTab('alarm')}>
-                    <i class="fas fa-cube"></i>
+                        <i class="fas fa-bed"></i>
                     </button>
                     <button className={`bg-transparent font-bold py-2 px-4 rounded ${activeTab === 'timer' ? 'text-blue-500' : 'text-white'}`} onClick={() => setActiveTab('timer')}>
                         <i className="fas fa-hourglass-start"></i>
@@ -250,6 +333,7 @@ function App() {
         if (db) {
             loadMedia();
             loadNonMedia();
+            loadNotes();
         }
     }, [db]);
 
@@ -273,8 +357,8 @@ function App() {
             if (!db.objectStoreNames.contains('timeZoneData')) {
                 db.createObjectStore('timeZoneData', { keyPath: 'id', autoIncrement: true });
             }
-            if (!db.objectStoreNames.contains('clockThemes')) {
-                db.createObjectStore('clockThemes', { keyPath: 'id', autoIncrement: true });
+            if (!db.objectStoreNames.contains('clockData')) {
+                db.createObjectStore('clockData', { keyPath: 'id', autoIncrement: true });
             }
         };
 
@@ -344,6 +428,7 @@ function App() {
 
         loadMedia();
         loadNonMedia();
+        loadNotes();
     };
 
     const resetToDefaults = () => {
@@ -487,6 +572,131 @@ function App() {
         });
     };
 
+    const loadNotes = async () => {
+        setIsLoading(true);
+        const transaction = db.transaction('clockData', 'readonly');
+        const objectStore = transaction.objectStore('clockData');
+        const request = objectStore.getAll();
+    
+        request.onsuccess = async (event) => {
+            const allNotes = event.target.result;
+            const decryptedNotes = await Promise.all(allNotes.map(async (note) => {
+                const decryptedContent = await decryptData(note.data, note.iv);
+                return { ...note, content: decryptedContent };
+            }));
+            setNotes(decryptedNotes);
+            setIsLoading(false);
+        };
+    
+        request.onerror = (event) => {
+            console.error('Error loading notes:', event.target.error);
+        };
+    };
+
+    const saveNote = async (note) => {
+        if (note.content.trim() === '') return;
+        const encryptedNote = await encryptData(note.content);
+        const noteToSave = {
+            ...note,
+            iv: encryptedNote.iv,
+            data: encryptedNote.data,
+        };
+    
+        const transaction = db.transaction('clockData', 'readwrite');
+        const objectStore = transaction.objectStore('clockData');
+        if (note.id) {
+            objectStore.put(noteToSave);
+        } else {
+            objectStore.add(noteToSave);
+        }
+    
+        transaction.oncomplete = () => {
+            loadNotes();
+        };
+    };
+
+    const deleteNote = (id) => {
+        const transaction = db.transaction('clockData', 'readwrite');
+        const objectStore = transaction.objectStore('clockData');
+        objectStore.delete(id);
+        transaction.oncomplete = () => {
+            loadNotes();
+        };
+    };
+
+    const handleNoteSave = async () => {
+        if (currentNote.content.trim() === '') return;
+    
+        const encryptedNote = await encryptData(currentNote.content);
+        const noteToSave = {
+            ...currentNote,
+            title: currentNote.content.split('\n')[0],
+            iv: encryptedNote.iv,
+            data: encryptedNote.data
+        };
+    
+        saveNote(noteToSave);
+        setCurrentNote({ content: '' });
+        setEditNote(false);
+    };
+
+    const handleNoteEdit = (note) => {
+        setCurrentNote({ ...note });
+        setEditNote(true);
+    };
+
+    const handleNoteDelete = (note) => {
+        deleteNote(note.id);
+        setCurrentNote({ content: '' });
+        setEditNote(false);
+    };
+
+    const renderNotes = () => {
+        return (
+            <>
+                <div className="overflow-x-hidden">
+                    <textarea
+                        className="w-full p-2 border rounded bg-gray-800 text-gray-200"
+                        rows="5"
+                        value={currentNote.content}
+                        onChange={(e) => setCurrentNote({ ...currentNote, content: e.target.value })}
+                        placeholder="Write your note here..."
+                    ></textarea>
+                    <div className="mt-2">
+                        <button
+                            className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
+                            onClick={handleNoteSave}
+                        >
+                            {editNote ? 'Update Note' : 'Save Note'}
+                        </button>
+                        {editNote && (
+                            <button
+                                className="bg-red-500 text-white px-4 py-2 rounded"
+                                onClick={() => handleNoteDelete(currentNote)}
+                            >
+                                Delete Note
+                            </button>
+                        )}
+                    </div>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                    {notes.map((note) => {
+                        const title = note.content.split('\n')[0];
+                        return (
+                            <div
+                                key={note.id}
+                                className="p-4 border rounded cursor-pointer bg-gray-700 text-gray-200 mb-2"
+                                onClick={() => handleNoteEdit(note)}
+                            >
+                                <h2 className="text-xl font-bold">{title}</h2>
+                                <p className="text-gray-400">{note.content}</p>
+                            </div>
+                        )})}
+                </div>
+            </>
+        );
+    };
+
     const renderNonMediaFiles = () => {
         return nonMediaElements.map((file, index) => (
             <div key={index} className="file-item p-2 border rounded flex flex-col space-y-2">
@@ -497,6 +707,9 @@ function App() {
             </div>
         ));
     };
+
+    
+    
 
     const saveMediaToDB = (url, type) => {
         const transaction = db.transaction('clockSettings', 'readwrite');
@@ -555,6 +768,7 @@ function App() {
     const handleTabClick = (tab) => {
         setGalleryVisible(tab === 'gallery');
         setFilesVisible(tab === 'files');
+        setNotesVisible(tab === 'notes');
         
         const tabIndex = tab === 'gallery' ? 0 : tab === 'files' ? 1 : 2;
         setActiveTabIndex(tabIndex);
@@ -590,6 +804,7 @@ function App() {
 
         loadMedia();
         loadNonMedia();
+        loadNotes();
     };
 
     const openSettings = () => {
@@ -651,9 +866,10 @@ function App() {
                     <div className="tabs mb-4">
                         <button id="galleryTab" className={`tab ${galleryVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('gallery')}>Gallery</button>
                         <button id="filesTab" className={`tab ${filesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('files')}>Files</button>
+                        <button id="notesTab" className={`tab ${notesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('notes')}>Notes</button>
                         <div className="active-indicator" style={{ left: `${activeTabIndex * 100}%` }}></div>
                     </div>
-                    <div id="gallery" className={`grid grid-cols-3 gap-4 ${galleryVisible ? '' : 'hidden'}`}>
+                    <div id="gallery" className={`grid grid-cols-3 gap-3 ${galleryVisible ? '' : 'hidden'}`}>
                         {mediaElements.map((media, index) => (
                             media.url ? (
                             <div key={index} className="gallery-item cursor-pointer" onClick={() => openModal(media.url, media.type)}>
@@ -666,8 +882,11 @@ function App() {
                         ) : null
                         ))}
                     </div>
-                    <div id="files" className={`grid grid-cols-3 gap-4 ${filesVisible ? '' : 'hidden'}`}>
+                    <div id="files" className={`grid grid-cols-3 gap-3 ${filesVisible ? '' : 'hidden'}`}>
                         {renderNonMediaFiles()}
+                    </div>
+                    <div id="notes" className={`overflow-y-auto ${notesVisible ? '' : 'hidden'}`}>    
+                        {renderNotes()}
                     </div>
                 </main>
                 {modalVisible && (
