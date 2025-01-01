@@ -5,7 +5,7 @@
 cLockbox is a unique take on the traditional clock. It combines the functionality of a clock with the security of a lockbox. This lockbox is able to store files, images/videos, and notes hosted directly within the user's browser (nothing is sent to a server!).
 
 
-View a live demo here: [clock.ż.co](https://clock.ż.co/)
+Instances: [clock.0kb.org](https://clock.0kb.org) | [clock.ż.co](https://clock.ż.co/)
 
 ## Table of Contents
 
