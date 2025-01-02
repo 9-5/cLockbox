@@ -42,6 +42,22 @@ function App() {
     const [currentNote, setCurrentNote] = useState({ content: '' });
     const [editNote, setEditNote] = useState(false);
     const [isDeleteMode, setIsDeleteMode] = useState(false);
+    const [enableServiceWorker, setEnableServiceWorker] = useState(() => {
+        const savedPreference = localStorage.getItem('offlineMode');
+        return savedPreference !== null ? savedPreference === 'true' : false; // Default to false if no saved preference
+    });
+
+    useEffect(() => {
+        if (enableServiceWorker && 'serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log(`ServiceWorker registration successful with scope: ${registration.scope}`);
+                })
+                .catch(err => {
+                    console.log(`ServiceWorker registration failed: ${err}`);
+                });
+        }
+    }, [enableServiceWorker]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -95,7 +111,8 @@ function App() {
     useEffect(() => {
         localStorage.setItem('clkEnabled', isAnalogClockEnabled);
         localStorage.setItem('theme', currentTheme);
-    }, [isAnalogClockEnabled, currentTheme]);
+        localStorage.setItem('offlineMode', enableServiceWorker);
+    }, [isAnalogClockEnabled, currentTheme, enableServiceWorker]);
 
     useEffect(() => {
         document.body.className = currentTheme === 'Ocean' ? '' : currentTheme.toLowerCase();
@@ -282,6 +299,7 @@ function App() {
                                         </option>
                                     ))}
                                 </select>
+                                
                             </div>
                             <div className="flex items-center">
                                 <label className="mr-2">Enable Analog Clock</label>
@@ -289,6 +307,16 @@ function App() {
                             </div>
                             <div className="flex items-center">
                                 <button className="bg-red-700 text-white font-bold py-2 px-4 rounded mr-2" onClick={() => {resetToDefaults();}}>Reset to Defaults</button>
+                            </div>
+                            <div className="flex items-center">
+                            <label>
+                                    Enable Offline Mode
+                                    <input
+                                        type="checkbox"
+                                        checked={enableServiceWorker}
+                                        onChange={(e) => setEnableServiceWorker(e.target.checked)}
+                                    />
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -435,6 +463,7 @@ function App() {
     const resetToDefaults = () => {
         indexedDB.deleteDatabase('clockData');
         localStorage.clear('clockSessionID');
+        caches.delete('cLockCache');
         setIsAnalogClockEnabled(true);
         setCurrentTheme('Ocean');
     };
@@ -1211,7 +1240,6 @@ function App() {
                 )}
             </div>
         );
-        
     }
 
     const renderAbout = () => {
