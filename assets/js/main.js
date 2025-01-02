@@ -1,4 +1,6 @@
 const { useState, useEffect } = React;
+const alarmSound = new Audio('assets/audio/alarm.mp3');
+const timerSound = new Audio('assets/audio/timer.mp3');
 
 function App() {
     const [mediaElements, setMediaElements] = useState([]);
@@ -18,10 +20,8 @@ function App() {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [alarmTime, setAlarmTime] = useState('');
     const [isAlarmActive, setIsAlarmActive] = useState(false);
-    const alarmSound = new Audio('assets/audio/alarm.mp3');
     const [timer, setTimer] = useState(1500);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const timerSound = new Audio('assets/audio/timer.mp3');
     const [stopwatch, setStopwatch] = useState(0);
     const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
     const [laps, setLaps] = useState([]);
@@ -41,6 +41,7 @@ function App() {
     const [notes, setNotes] = useState([]);
     const [currentNote, setCurrentNote] = useState({ content: '' });
     const [editNote, setEditNote] = useState(false);
+    const [isDeleteMode, setIsDeleteMode] = useState(false);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -448,7 +449,7 @@ function App() {
             const mediaItems = event.target.result;
             const decryptedMediaItems = await Promise.all(mediaItems.map(async (media) => {
                 const decryptedUrl = await decryptData(media.data, media.iv, password);
-                return { url: decryptedUrl, type: media.type };
+                return { id: media.id, url: decryptedUrl, type: media.type };
             }));
             setMediaElements(decryptedMediaItems);
             setIsLoading(false);
@@ -474,7 +475,7 @@ function App() {
             const nonMediaItems = event.target.result;
             const decryptedNonMediaItems = await Promise.all(nonMediaItems.map(async (media) => {
                 const decryptedUrl = await decryptData(media.data, media.iv);
-                return { url: decryptedUrl, type: media.type, name: media.name, size: media.size };
+                return { id: media.id, url: decryptedUrl, type: media.type, name: media.name, size: media.size };
             }));
             setNonMediaElements(decryptedNonMediaItems);
             setIsLoading(false);
@@ -698,23 +699,285 @@ function App() {
     };
 
     const renderNonMediaFiles = () => {
-        return nonMediaElements.map((file, index) => (
-            <div key={index} className="file-item p-2 border rounded flex flex-col space-y-2">
-                <p className="font-bold">{file.name}</p>
-                <p>Size: {file.size} bytes</p>
-                <p>Type: {file.type}</p>
-                <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer" className="text-blue-500">Download</a>
-            </div>
-        ));
+        return nonMediaElements.map((file, index) => {
+            const isPlainText = ['txt', 'md', 'cfg', 'ini', 'py', 'c', 'h', 'cpp', 'js', 'json', 'xml', 'html', 'css', 'md', 'sh', 'bat'].includes(file.name.split('.').pop().toLowerCase());
+            
+            return (
+                <div key={index} className="file-item p-2 border rounded flex flex-col space-y-2">
+                    {isDeleteMode && (
+                        <button onClick={() => deleteFileItem(file.id)}>
+                            Delete
+                        </button>
+                    )}
+                    <p className="font-bold">{file.name}</p>
+                    <p>Size: {file.size} bytes</p>
+                    <p>Type: {file.name.split('.').pop()}</p>
+                    <div className="flex items-center space-x-2">
+                    <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer" className="text-blue-500">
+                        <i className="fas fa-download fa-2xl"></i>
+                    </a>
+                    {file.type === 'application/pdf' && (
+                        <button className="text-blue-500" onClick={() => previewPDF(file.url)}>
+                        <i className="fas fa-file-pdf fa-2xl"></i>
+                        </button>
+                    )}
+                    {file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && (
+                        <button className="text-blue-500" onClick={() => previewDOCX(file.url)}>
+                        <i className="fas fa-file-word fa-2xl"></i>
+                        </button>
+                    )}
+                    {file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && (
+                        <button className="text-blue-500" onClick={() => previewXLSX(file.url)}>
+                        <i className="fas fa-file-excel fa-2xl"></i>
+                        </button>
+                    )}
+                    {(file.type === 'text/plain' || isPlainText) && (
+                        <button className="text-blue-500" onClick={() => previewTextFile(file.url)}>
+                            <i className="fas fa-file-alt fa-2xl"></i>
+                        </button>
+                    )}
+                    {file.type.startsWith('audio/') && (
+                        <button className="text-blue-500" onClick={() => previewAudio(file.url)}>
+                        <i className="fas fa-file-audio fa-2xl"></i>
+                        </button>
+                    )}
+                    {(file.type === 'application/zip' || file.name.endsWith('.zip')) && (
+                        <button className="text-blue-500" onClick={() => previewZIPFile(file.url)}>
+                            <i className="fas fa-file-archive fa-2xl"></i>
+                        </button>
+                    )}
+                    </div>
+                </div>
+            );
+        });
+    };
+      
+
+    const previewPDF = (url) => {
+        const pdfContainer = document.createElement('div');
+        pdfContainer.id = 'pdf-preview-container';
+        pdfContainer.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center';
+        document.body.appendChild(pdfContainer);
+    
+        const pdfViewer = document.createElement('div');
+        pdfViewer.id = 'pdf-viewer';
+        pdfViewer.className = 'w-full h-full bg-white';
+        pdfContainer.appendChild(pdfViewer);
+    
+        const closeButton = document.createElement('button');
+        closeButton.className = 'absolute top-4 right-4 text-white text-2xl p-2 bg-gray-800 rounded-full';
+        closeButton.innerHTML = '<i class="fas fa-times"></i>';
+        closeButton.onclick = () => document.body.removeChild(pdfContainer);
+        pdfContainer.appendChild(closeButton);
+    
+        pdfjsLib.getDocument(url).promise.then(pdf => {
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                pdf.getPage(pageNum).then(page => {
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    const viewport = page.getViewport({ scale: 1.5 });
+    
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+    
+                    pdfViewer.appendChild(canvas);
+    
+                    page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    });
+                });
+            }
+        });
     };
 
+    const previewDOCX = (url) => {
+        const docxContainer = document.createElement('div');
+        docxContainer.id = 'docx-preview-container';
+        docxContainer.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center';
+        document.body.appendChild(docxContainer);
     
+        const docxViewer = document.createElement('div');
+        docxViewer.id = 'docx-viewer';
+        docxViewer.className = 'w-full h-full bg-white p-4 overflow-auto';
+        docxContainer.appendChild(docxViewer);
     
+        const closeButton = document.createElement('button');
+        closeButton.className = 'absolute top-4 right-4 text-white text-2xl p-2 bg-gray-800 rounded-full';
+        closeButton.innerHTML = '<i class="fas fa-times"></i>';
+        closeButton.onclick = () => document.body.removeChild(docxContainer);
+        docxContainer.appendChild(closeButton);
+    
+        if (!window.docx || !window.docx.renderAsync) {
+            console.error('docxPreview library is not loaded or renderAsync method is missing.');
+            docxViewer.innerHTML = '<p class="text-red-500">Failed to load DOCX preview library.</p>';
+            return;
+        }
+    
+        const docxOptions = Object.assign(docx.defaultOptions, {
+            experimental: true
+        });
+    
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const processedBlob = preprocessTiff(blob);
+                window.docx.renderAsync(processedBlob, docxViewer, null, docxOptions);
+            })
+            .catch(error => {
+                console.error(`Error fetching DOCX file: ${error}`);
+                docxViewer.innerHTML = '<p class="text-red-500">Failed to load document.</p>';
+            });
+    };
+
+    const previewXLSX = (url) => {
+        const xlsxContainer = document.createElement('div');
+        xlsxContainer.id = 'xlsx-preview-container';
+        xlsxContainer.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center';
+        document.body.appendChild(xlsxContainer);
+    
+        const xlsxViewer = document.createElement('div');
+        xlsxViewer.id = 'xlsx-viewer';
+        xlsxViewer.className = 'w-full h-full bg-white p-4 overflow-auto';
+        xlsxContainer.appendChild(xlsxViewer);
+    
+        const closeButton = document.createElement('button');
+        closeButton.className = 'absolute top-4 right-4 text-white text-2xl p-2 bg-gray-800 rounded-full';
+        closeButton.innerHTML = '<i class="fas fa-times"></i>';
+        closeButton.onclick = () => document.body.removeChild(xlsxContainer);
+        xlsxContainer.appendChild(closeButton);
+    
+        fetch(url)
+            .then(response => response.arrayBuffer())
+            .then(arrayBuffer => {
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const html = XLSX.utils.sheet_to_html(worksheet);
+                xlsxViewer.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error fetching or parsing XLSX file:', error);
+                xlsxViewer.innerHTML = '<p class="text-red-500">Failed to load XLSX file.</p>';
+            });
+    };
+
+    const previewTextFile = (url) => {
+        const textContainer = document.createElement('div');
+        textContainer.id = 'text-preview-container';
+        textContainer.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center';
+        document.body.appendChild(textContainer);
+    
+        const textViewer = document.createElement('pre');
+        textViewer.id = 'text-viewer';
+        textViewer.className = 'w-full h-full bg-white p-4 overflow-auto language-js';
+        textContainer.appendChild(textViewer);
+    
+        const closeButton = document.createElement('button');
+        closeButton.className = 'absolute top-4 right-4 text-white text-2xl p-2 bg-gray-800 rounded-full';
+        closeButton.innerHTML = '<i class="fas fa-times"></i>';
+        closeButton.onclick = () => document.body.removeChild(textContainer);
+        textContainer.appendChild(closeButton);
+    
+        fetch(url)
+            .then(response => response.text())
+            .then(text => {
+                textViewer.innerHTML = Prism.highlight(text, Prism.languages.javascript, 'javascript');
+            })
+            .catch(error => {
+                console.error('Error fetching text file:', error);
+                textViewer.innerHTML = '<p class="text-red-500">Failed to load text file.</p>';
+            });
+    };
+
+    const previewAudio = (url) => {
+        const audioContainer = document.createElement('div');
+        audioContainer.id = 'audio-preview-container';
+        audioContainer.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center';
+        document.body.appendChild(audioContainer);
+    
+        const audioViewer = document.createElement('audio');
+        audioViewer.src = url;
+        audioViewer.controls = true;
+        audioViewer.className = 'w-full h-full object-contain';
+        audioContainer.appendChild(audioViewer);
+    
+        const closeButton = document.createElement('button');
+        closeButton.className = 'absolute top-4 right-4 text-white text-2xl p-2 bg-gray-800 rounded-full';
+        closeButton.innerHTML = '<i class="fas fa-times"></i>';
+        closeButton.onclick = () => document.body.removeChild(audioContainer);
+        audioContainer.appendChild(closeButton);
+    };
+
+    const previewZIPFile = (url) => {
+        const zipContainer = document.createElement('div');
+        zipContainer.id = 'zip-preview-container';
+        zipContainer.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center';
+        document.body.appendChild(zipContainer);
+    
+        const zipViewer = document.createElement('div');
+        zipViewer.id = 'zip-viewer';
+        zipViewer.className = 'w-full h-full bg-white p-4 overflow-auto';
+        zipContainer.appendChild(zipViewer);
+    
+        const closeButton = document.createElement('button');
+        closeButton.className = 'absolute top-4 right-4 text-white text-2xl p-2 bg-gray-800 rounded-full';
+        closeButton.innerHTML = '<i class="fas fa-times"></i>';
+        closeButton.onclick = () => document .body.removeChild(zipContainer);
+        zipContainer.appendChild(closeButton);
+    
+        fetch(url)
+            .then(response => response.blob())
+            .then(blob => {
+                const zip = new JSZip();
+                return zip.loadAsync(blob);
+            })
+            .then(zip => {
+                zipViewer.innerHTML = '<h2 class="font-bold">ZIP Contents:</h2>';
+                Object.keys(zip.files).forEach(filename => {
+                    const fileLink = document.createElement('a');
+                    fileLink.href = `data:text/plain;charset=utf-8,${encodeURIComponent(zip.files[filename].async("text"))}`;
+                    fileLink.download = filename;
+                    fileLink.innerText = filename;
+                    zipViewer.appendChild(fileLink);
+                    zipViewer.appendChild(document.createElement('br'));
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching ZIP file:', error);
+                zipViewer.innerHTML = '<p class="text-red-500">Failed to load ZIP file.</p>';
+            });
+    };
 
     const saveMediaToDB = (url, type) => {
         const transaction = db.transaction('clockSettings', 'readwrite');
         const objectStore = transaction.objectStore('clockSettings');
         objectStore.add({ iv: url.iv, data: url.data, type });
+    };
+
+    const deleteGalleryItem = (id) => {
+        const transaction = db.transaction('clockSettings', 'readwrite');
+        const objectStore = transaction.objectStore('clockSettings');
+        objectStore.delete(id);
+        transaction.oncomplete = () => {
+            loadMedia();
+            setIsDeleteMode(false);
+        };
+    };
+    
+    const deleteFileItem = (id) => {
+        const transaction = db.transaction('timeZoneData', 'readwrite');
+        const objectStore = transaction.objectStore('timeZoneData');
+        objectStore.delete(id);
+        transaction.oncomplete = () => {
+            loadNonMedia();
+            setIsDeleteMode(false);
+        };
     };
 
     const openModal = (url, type) => {
@@ -856,6 +1119,12 @@ function App() {
                 <header className="w-screen text-center mb-8 bg-gray-900 text-white">
                 <h1 className="text-4xl font-bold" onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}}>Lockbox</h1>
                                 <button onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}} className="mr-2 text-white"><i className="fas fa-lock fa-xl"></i></button>
+                                <button 
+                                    className="mr-2 text-white"
+                                    onClick={() => setIsDeleteMode(!isDeleteMode)}
+                                >
+                                    <i className="fas fa-trash"></i>
+                                </button>
                                 <button onClick={openSettings} className="mr-2 text-white"><i className="fas fa-cogs fa-xl"></i></button>
                             </header>
                             <main className="flex-grow bg-gray-900 text-white">
@@ -873,6 +1142,16 @@ function App() {
                         {mediaElements.map((media, index) => (
                             media.url ? (
                             <div key={index} className="gallery-item cursor-pointer" onClick={() => openModal(media.url, media.type)}>
+                                <div>
+                                    {isDeleteMode && (
+                                        <button 
+                                            className="delete-button" 
+                                            onClick={(e) => { e.stopPropagation(); deleteGalleryItem(media.id); }}
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
+                                </div>
                                 {media.type.startsWith('image/') ? (
                                     <img src={media.url} alt="User  uploaded image" className="w-full h-full object-cover" />
                                 ) : (

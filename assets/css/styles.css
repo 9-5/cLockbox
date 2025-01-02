@@ -20,6 +20,18 @@
     justify-content: center;
     width: 250px;
 }
+.delete-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: red;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 10; /* Ensure the button is above the image */
+}
 .tabs {
     position: relative;
     display: flex;
@@ -85,6 +97,7 @@
     width: 100%;
     padding-top: 100%; 
     overflow: hidden; 
+    display: inline-block;
 }
 
 .gallery-item img,
@@ -95,6 +108,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover; 
+    display: inline-block;
 }
 
 .sky .bg-gray-700 {
@@ -647,4 +661,14 @@
 
 .amethyst .hand.second {
     background: #ffcccb; 
+}
+
+#pdf-preview-container, #docx-preview-container, #xlsx-preview-container, #text-preview-container, #zip-preview-container{
+    z-index: 1000;
+}
+
+#pdf-viewer, #docx-viewer, #xlsx-viewer, #text-viewer, #zip-viewer #audio-preview-container {
+    max-width: 90%;
+    max-height: 90%;
+    overflow: auto;
 }
