@@ -160,7 +160,7 @@ function App() {
         if (minutes > 59) {
             minutes = 0;
         }
-        minutes = (0.1 * seconds) + 90 + (minutes * 6);
+        minutes = (0.01 * seconds) + 90 + (minutes * 6);
         hours = (0.25 * minutes) + 90 + (hours * 15)
         console.log(`${hours}.${minutes}.${seconds}`)
         return {
