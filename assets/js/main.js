@@ -151,6 +151,7 @@ function App() {
         const seconds =  ((timeNow.getSeconds() / 60) * 360) + 90;
         const minutes = ((timeNow.getMinutes() / 60) * 360) + ((seconds / 60) * 6) + 90;
         const hours = ((timeNow.getHours() % 12) * 30) + (minutes / 60) * 30;
+        console.log(`${hours}.${minutes}.${seconds}`)
         return {
             secondHand: { transform: `rotate(${seconds}deg)` },
             minuteHand: { transform: `rotate(${minutes}deg)` },
