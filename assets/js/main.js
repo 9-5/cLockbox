@@ -148,26 +148,25 @@ function App() {
 
     const getClockHandsStyle = () => {
         const timeNow = new Date();
-        let minutes = timeNow.getMinutes()
-        let hours = timeNow.getHours()
-        const seconds =  ((timeNow.getSeconds() / 60) * 360) + 90;
+        let seconds = timeNow.getSeconds();
+        let minutes = timeNow.getMinutes();
+        let hours = timeNow.getHours();
+        
         hours = hours % 12;
-        if (hours === 0) {
-            hours = 12;
-        }
+        
+        const referenceHours = 9;
+        const referenceMinutes = 45;
+        const referenceSeconds = 45;
 
-        minutes = minutes + 1;
-        if (minutes > 59) {
-            minutes = 0;
-        }
-        minutes = (0.01 * seconds) + 90 + (minutes * 6);
-        hours = (0.25 * minutes) + 90 + (hours * 15)
-        console.log(`${hours}.${minutes}.${seconds}`)
+        const secondsAngle = ((seconds * 6) - (referenceSeconds * 6)) % 360;
+        const minutesAngle = ((minutes * 6) + (seconds/10) - (referenceMinutes * 6)) % 360;
+        const hoursAngle = ((hours * 30) + (minutes/2) + (seconds/120) - (referenceHours * 30)) % 360;
+    
         return {
-            secondHand: { transform: `rotate(${seconds}deg)` },
-            minuteHand: { transform: `rotate(${minutes}deg)` },
-            hourHand: { transform: `rotate(${hours}deg)` }
-          };
+            secondHand: { transform: `rotate(${secondsAngle}deg)` },
+            minuteHand: { transform: `rotate(${minutesAngle}deg)` },
+            hourHand: { transform: `rotate(${hoursAngle}deg)` }
+        };
     };
 
     const { secondHand, minuteHand, hourHand } = getClockHandsStyle();
