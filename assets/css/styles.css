@@ -11,6 +11,27 @@
 ::-webkit-scrollbar-thumb:hover {
     background: #888;
 }
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+.lockbox-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #1a202c;
+}
+
+.lockbox-header {
+    padding: 16px;
+    background-color: #2d3748;
+}
+
+.lockbox-content {
+    flex: 1;
+    overflow-y: auto;
+}
 .upload-button-container {
     display: flex;
     justify-content: center;
