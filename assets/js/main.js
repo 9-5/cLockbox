@@ -146,36 +146,20 @@ function App() {
         setLaps([...laps, stopwatch]);
     };
 
-    useEffect(() => {
-        if (isAnalogClockEnabled) {
-            const hourEl = document.querySelector(".hour");
-            const minuteEl = document.querySelector(".minute");
-            const secondEl = document.querySelector(".second");
-        
-            const updateClock = () => {
-                const currentTime = new Date();
-                const currentHour = currentTime.getHours();
-                const currentMinute = currentTime.getMinutes();
-                const currentSecond = currentTime.getSeconds();
-                const hourDeg = 30 * currentHour + currentMinute / 2;
-                const minuteDeg = currentMinute * 6;
-                const secondDeg = currentSecond * 6;
-                hourEl.style.transform = `rotate(${hourDeg}deg)`;
-                minuteEl.style.transform = `rotate(${minuteDeg}deg)`;
-                secondEl.style.transform = `rotate(${secondDeg}deg)`;
-                console.log(currentHour);
-            }
-            else {
-                return null;
-            }
-        };
-    
-        const interval = setInterval(updateClock, 1000);
-        updateClock(); 
-    
-        return () => clearInterval(interval);
-    }, []);
-    
+    const getClockHandsStyle = () => {
+        const timeNow = new Date();
+        const seconds =  ((timeNow.getSeconds() / 60) * 360) + 90;
+        const minutes = ((timeNow.getMinutes() / 60) * 360) + ((seconds / 60) * 6) + 90;
+        const hours = ((timeNow.getHours() % 12) * 30) + (minutes / 60) * 30;
+        return {
+            secondHand: { transform: `rotate(${seconds}deg)` },
+            minuteHand: { transform: `rotate(${minutes}deg)` },
+            hourHand: { transform: `rotate(${hours}deg)` }
+          };
+    };
+
+    const { secondHand, minuteHand, hourHand } = getClockHandsStyle();
+
     const handleHourHandClick = () => {
         setTrackedHourClicks(prev => {
             const newCount = prev + 1;
@@ -204,9 +188,9 @@ function App() {
             <div className="mb-8">
                 {isAnalogClockEnabled && (
                     <div className="clock">
-                        <div className="hand hour" onClick={() => handleHourHandClick()}></div>
-                        <div className="hand minute" onClick={() => handleMinuteHandClick()}></div>
-                        <div className="hand second"></div>
+                        <div className="hand hour" style={hourHand} onClick={() => handleHourHandClick()}></div>
+                        <div className="hand minute" style={minuteHand} onClick={() => handleMinuteHandClick()}></div>
+                        <div className="hand second" style={secondHand}></div>
                     </div>
                 )}
             </div>
