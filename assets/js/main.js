@@ -152,17 +152,17 @@ function App() {
         const secondEl = document.querySelector(".second");
     
         const updateClock = () => {
-            const currentHour = new Date().getHours();
-            const hourDeg = (currentHour / 12) * 360;
+            const currentTime = new Date();
+            const currentHour = currentTime.getHours();
+            const currentMinute = currentTime.getMinutes();
+            const currentSecond = currentTime.getSeconds();
+            const hourDeg = 30 * currentHour + currentMinute / 2;
+            const minuteDeg = currentMinute * 6;
+            const secondDeg = currentSecond * 6;
             hourEl.style.transform = `rotate(${hourDeg}deg)`;
-    
-            const currentMinute = new Date().getMinutes();
-            const minuteDeg = (currentMinute / 60) * 360;
             minuteEl.style.transform = `rotate(${minuteDeg}deg)`;
-    
-            const currentSecond = new Date().getSeconds();
-            const secondDeg = (currentSecond / 60) * 360;
             secondEl.style.transform = `rotate(${secondDeg}deg)`;
+            console.log(currentHour)
         };
     
         const interval = setInterval(updateClock, 1000);
