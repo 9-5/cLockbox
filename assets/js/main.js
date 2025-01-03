@@ -147,22 +147,27 @@ function App() {
     };
 
     useEffect(() => {
-        const hourEl = document.querySelector(".hour");
-        const minuteEl = document.querySelector(".minute");
-        const secondEl = document.querySelector(".second");
-    
-        const updateClock = () => {
-            const currentTime = new Date();
-            const currentHour = currentTime.getHours();
-            const currentMinute = currentTime.getMinutes();
-            const currentSecond = currentTime.getSeconds();
-            const hourDeg = 30 * currentHour + currentMinute / 2;
-            const minuteDeg = currentMinute * 6;
-            const secondDeg = currentSecond * 6;
-            hourEl.style.transform = `rotate(${hourDeg}deg)`;
-            minuteEl.style.transform = `rotate(${minuteDeg}deg)`;
-            secondEl.style.transform = `rotate(${secondDeg}deg)`;
-            console.log(currentHour)
+        if (isAnalogClockEnabled) {
+            const hourEl = document.querySelector(".hour");
+            const minuteEl = document.querySelector(".minute");
+            const secondEl = document.querySelector(".second");
+        
+            const updateClock = () => {
+                const currentTime = new Date();
+                const currentHour = currentTime.getHours();
+                const currentMinute = currentTime.getMinutes();
+                const currentSecond = currentTime.getSeconds();
+                const hourDeg = 30 * currentHour + currentMinute / 2;
+                const minuteDeg = currentMinute * 6;
+                const secondDeg = currentSecond * 6;
+                hourEl.style.transform = `rotate(${hourDeg}deg)`;
+                minuteEl.style.transform = `rotate(${minuteDeg}deg)`;
+                secondEl.style.transform = `rotate(${secondDeg}deg)`;
+                console.log(currentHour);
+            }
+            else {
+                return null;
+            }
         };
     
         const interval = setInterval(updateClock, 1000);
