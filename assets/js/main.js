@@ -1105,140 +1105,140 @@ function App() {
 
     const renderLockbox = () => {
         return (
-            
-            <div className="w-full h-full bg-gray-900 text-white">
-                {showSettings && (
-                    <div className="settings-container">
-                        <h2 className="text-2xl font-semibold">Lockbox Settings</h2>
-                        <button className="btn btn-primary" onClick={openSettings}><i className="fas fa-arrow-left"></i> Back to Lockbox</button>
-                        <div className="mt-4">
-                            <label className="mr-2">Theme</label>
-                            <select 
-                                value={currentTheme} 
-                                onChange={(e) => setCurrentTheme(e.target.value)}
-                                className="mt-2 w-full p-2 bg-gray-700 text-white rounded"
-                            >
-                                {themes.map((theme, index) => (
-                                    <option key={index} value={theme.name}>
-                                        {theme.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="flex items-center mt-4">
-                            <button 
-                                className="bg-red-700 text-white font-bold py-2 px-4 rounded" 
-                                onClick={clearDatabase}
-                            >
-                                Clear Database
-                            </button>
-                            <button
-                            className="bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
-                            onClick={setSetPasswordModalVisibleState}
-                            >Set Password</button>
-                        </div>
-                        <div className="flex items-center mt-4">
-                            <button className="bg-blue-500 text-white font-bold py-2 px-4 rounded mr-2" onClick={exportDatabase}>
-                                Export Database
-                            </button>
-                            <input type="file" accept=".clk" onChange={handleInputFileChange} className="bg-gray-700 text-white rounded p-2" />
-                        </div>
-                    </div>
-                )}
-                <header className="w-screen text-center mb-8 bg-gray-900 text-white">
-                <h1 className="text-4xl font-bold" onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}}>Lockbox</h1>
-                                <button onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}} className="mr-2 text-white"><i className="fas fa-lock fa-xl"></i></button>
-                                <button 
-                                    className="mr-2 text-white"
-                                    onClick={() => setIsDeleteMode(!isDeleteMode)}
+                
+                <div className="lockbox-container">
+                    {showSettings && (
+                        <div className="settings-container">
+                            <h2 className="text-2xl font-semibold">Lockbox Settings</h2>
+                            <button className="btn btn-primary" onClick={openSettings}><i className="fas fa-arrow-left"></i> Back to Lockbox</button>
+                            <div className="mt-4">
+                                <label className="mr-2">Theme</label>
+                                <select 
+                                    value={currentTheme} 
+                                    onChange={(e) => setCurrentTheme(e.target.value)}
+                                    className="mt-2 w-full p-2 bg-gray-700 text-white rounded"
                                 >
-                                    <i className="fas fa-trash"></i>
+                                    {themes.map((theme, index) => (
+                                        <option key={index} value={theme.name}>
+                                            {theme.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex items-center mt-4">
+                                <button 
+                                    className="bg-red-700 text-white font-bold py-2 px-4 rounded" 
+                                    onClick={clearDatabase}
+                                >
+                                    Clear Database
                                 </button>
-                                <button onClick={openSettings} className="mr-2 text-white"><i className="fas fa-cogs fa-xl"></i></button>
-                            </header>
-                            <main className="flex-grow bg-gray-900 text-white">
-
-                    <div className="upload-button-container">
-                        <input type="file" id="fileInput" multiple className="block w-full text-sm text-gray-400 file:bg-gray-700 file:text-white hover:file:bg-gray-600" onChange={handleFileUpload} />
-                    </div>
-                    <div className="tabs mb-4">
-                        <button id="galleryTab" className={`tab ${galleryVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('gallery')}>Gallery</button>
-                        <button id="filesTab" className={`tab ${filesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('files')}>Files</button>
-                        <button id="notesTab" className={`tab ${notesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('notes')}>Notes</button>
-                        <div className="active-indicator" style={{ left: `${activeTabIndex * 100}%` }}></div>
-                    </div>
-                    <div id="gallery" className={`grid grid-cols-3 gap-3 ${galleryVisible ? '' : 'hidden'}`}>
-                        {mediaElements.map((media, index) => (
-                            media.url ? (
-                            <div key={index} className="gallery-item cursor-pointer" onClick={() => openModal(media.url, media.type)}>
-                                <div>
-                                    {isDeleteMode && (
-                                        <button 
-                                            className="delete-button" 
-                                            onClick={(e) => { e.stopPropagation(); deleteGalleryItem(media.id); }}
-                                        >
-                                            Delete
-                                        </button>
+                                <button
+                                className="bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
+                                onClick={setSetPasswordModalVisibleState}
+                                >Set Password</button>
+                            </div>
+                            <div className="flex items-center mt-4">
+                                <button className="bg-blue-500 text-white font-bold py-2 px-4 rounded mr-2" onClick={exportDatabase}>
+                                    Export Database
+                                </button>
+                                <input type="file" accept=".clk" onChange={handleInputFileChange} className="bg-gray-700 text-white rounded p-2" />
+                            </div>
+                        </div>
+                    )}
+                    <header className="lockbox-header">
+                    <h1 className="text-4xl font-bold" onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}}>Lockbox</h1>
+                                    <button onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}} className="mr-2 text-white"><i className="fas fa-lock fa-xl"></i></button>
+                                    <button 
+                                        className="mr-2 text-white"
+                                        onClick={() => setIsDeleteMode(!isDeleteMode)}
+                                    >
+                                        <i className="fas fa-trash"></i>
+                                    </button>
+                                    <button onClick={openSettings} className="mr-2 text-white"><i className="fas fa-cogs fa-xl"></i></button>
+                                </header>
+                                <main className="lockbox-content">
+    
+                        <div className="upload-button-container">
+                            <input type="file" id="fileInput" multiple className="block w-full text-sm text-gray-400 file:bg-gray-700 file:text-white hover:file:bg-gray-600" onChange={handleFileUpload} />
+                        </div>
+                        <div className="tabs mb-4">
+                            <button id="galleryTab" className={`tab ${galleryVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('gallery')}>Gallery</button>
+                            <button id="filesTab" className={`tab ${filesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('files')}>Files</button>
+                            <button id="notesTab" className={`tab ${notesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('notes')}>Notes</button>
+                            <div className="active-indicator" style={{ left: `${activeTabIndex * 100}%` }}></div>
+                        </div>
+                        <div id="gallery" className={`grid grid-cols-3 gap-3 ${galleryVisible ? '' : 'hidden'}`}>
+                            {mediaElements.map((media, index) => (
+                                media.url ? (
+                                <div key={index} className="gallery-item cursor-pointer" onClick={() => openModal(media.url, media.type)}>
+                                    <div>
+                                        {isDeleteMode && (
+                                            <button 
+                                                className="delete-button" 
+                                                onClick={(e) => { e.stopPropagation(); deleteGalleryItem(media.id); }}
+                                            >
+                                                Delete
+                                            </button>
+                                        )}
+                                    </div>
+                                    {media.type.startsWith('image/') ? (
+                                        <img src={media.url} alt="User  uploaded image" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <video src={media.url} controls className="w-full h-full object-cover"></video>
                                     )}
                                 </div>
-                                {media.type.startsWith('image/') ? (
-                                    <img src={media.url} alt="User  uploaded image" className="w-full h-full object-cover" />
-                                ) : (
-                                    <video src={media.url} controls className="w-full h-full object-cover"></video>
-                                )}
+                            ) : null
+                            ))}
+                        </div>
+                        <div id="files" className={`grid grid-cols-3 gap-3 ${filesVisible ? '' : 'hidden'}`}>
+                            {renderNonMediaFiles()}
+                        </div>
+                        <div id="notes" className={`overflow-y-auto ${notesVisible ? '' : 'hidden'}`}>    
+                            {renderNotes()}
+                        </div>
+                    </main>
+                    {modalVisible && (
+                        <div id="modal" className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center">
+                            <div className="relative w-full max-w-4xl h-full max-h-4xl p-4 bg-gray-800">
+                                <div id="modalContent" className="w-full h-full flex items-center justify-center">
+                                    {modalContent.type.startsWith('image/') ? (
+                                        <img src={modalContent.url} alt="Enlarged user uploaded image" className="w-full h-full object-contain" />
+                                    ) : (
+                                        <video src={modalContent.url} controls className="w-full h-full object-contain"></video>
+                                    )}
+                                </div>
+                                <button id="prevButton" className="absolute left-0 top-1/2 transform -translate-y-1/2 text-white text-2xl p-2" onClick={showPrevious}>
+                                    <i className="fas fa-chevron-left"></i>
+                                </button>
+                                <button id="nextButton" className="absolute right-0 top-1/2 transform -translate-y-1/2 text-white text-2xl p-2" onClick={showNext}>
+                                    <i className="fas fa-chevron-right"></i>
+                                </button>
+                                <button id="closeButton" className="absolute top-4 right-4 text-white text-2xl p-2 bg-gray-800 rounded-full" onClick={closeModal}>
+                                    <i className="fas fa-times"></i>
+                                </button>
                             </div>
-                        ) : null
-                        ))}
-                    </div>
-                    <div id="files" className={`grid grid-cols-3 gap-3 ${filesVisible ? '' : 'hidden'}`}>
-                        {renderNonMediaFiles()}
-                    </div>
-                    <div id="notes" className={`overflow-y-auto ${notesVisible ? '' : 'hidden'}`}>    
-                        {renderNotes()}
-                    </div>
-                </main>
-                {modalVisible && (
-                    <div id="modal" className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center">
-                        <div className="relative w-full max-w-4xl h-full max-h-4xl p-4 bg-gray-800">
-                            <div id="modalContent" className="w-full h-full flex items-center justify-center">
-                                {modalContent.type.startsWith('image/') ? (
-                                    <img src={modalContent.url} alt="Enlarged user uploaded image" className="w-full h-full object-contain" />
-                                ) : (
-                                    <video src={modalContent.url} controls className="w-full h-full object-contain"></video>
-                                )}
+                        </div>
+                    )}
+                    {passwordModalVisible && (
+                        <div id="passwordModal" className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center">
+                            <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
+                                <h2 className="text-2xl font-bold mb-4 text-white">Enter Password</h2>
+                                <input type="password" id="passwordInput" value={password} className="w-full p-2 border border-gray-600 rounded mb-4 bg-gray-700 text-white" placeholder="Password" onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {handlePasswordSubmit();}}}/>
+                                <button id="passwordSubmit" className="w-full bg-blue-500 text-white p-2 rounded" onClick={handlePasswordSubmit}>Submit</button>
                             </div>
-                            <button id="prevButton" className="absolute left-0 top-1/2 transform -translate-y-1/2 text-white text-2xl p-2" onClick={showPrevious}>
-                                <i className="fas fa-chevron-left"></i>
-                            </button>
-                            <button id="nextButton" className="absolute right-0 top-1/2 transform -translate-y-1/2 text-white text-2xl p-2" onClick={showNext}>
-                                <i className="fas fa-chevron-right"></i>
-                            </button>
-                            <button id="closeButton" className="absolute top-4 right-4 text-white text-2xl p-2 bg-gray-800 rounded-full" onClick={closeModal}>
-                                <i className="fas fa-times"></i>
-                            </button>
                         </div>
-                    </div>
-                )}
-                {passwordModalVisible && (
-                    <div id="passwordModal" className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center">
-                        <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
-                            <h2 className="text-2xl font-bold mb-4 text-white">Enter Password</h2>
-                            <input type="password" id="passwordInput" value={password} className="w-full p-2 border border-gray-600 rounded mb-4 bg-gray-700 text-white" placeholder="Password" onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {handlePasswordSubmit();}}}/>
-                            <button id="passwordSubmit" className="w-full bg-blue-500 text-white p-2 rounded" onClick={handlePasswordSubmit}>Submit</button>
+                    )}
+    
+                    {setPasswordModalVisibleState && (
+                        <div id="setPasswordModal" className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center">
+                            <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
+                                <h2 className="text-2xl font-bold mb-4 text-white">Set Password</h2>
+                                <input type="password" id="setPasswordInput" value={setPasswordState} className="w-full p-2 border border-gray-600 rounded mb-4 bg-gray-700 text-white" placeholder="Password" onChange={(e) => setSetPasswordState(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {handleSetPasswordSubmit();}}}/>
+                                <button id="setPasswordSubmit" className="w-full bg-blue-500 text-white p-2 rounded" onClick={handleSetPasswordSubmit}>Set Password</button>
+                            </div>
                         </div>
-                    </div>
-                )}
-
-                {setPasswordModalVisibleState && (
-                    <div id="setPasswordModal" className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center">
-                        <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
-                            <h2 className="text-2xl font-bold mb-4 text-white">Set Password</h2>
-                            <input type="password" id="setPasswordInput" value={setPasswordState} className="w-full p-2 border border-gray-600 rounded mb-4 bg-gray-700 text-white" placeholder="Password" onChange={(e) => setSetPasswordState(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {handleSetPasswordSubmit();}}}/>
-                            <button id="setPasswordSubmit" className="w-full bg-blue-500 text-white p-2 rounded" onClick={handleSetPasswordSubmit}>Set Password</button>
-                        </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
         );
     }
 
