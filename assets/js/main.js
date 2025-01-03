@@ -154,8 +154,8 @@ function App() {
         console.log(`${hours}.${minutes}.${seconds}`)
         return {
             secondHand: { transform: `rotate(${seconds}deg)` },
-            minuteHand: { transform: `rotate(${minutes}deg)` },
-            hourHand: { transform: `rotate(${hours}deg)` }
+            minuteHand: { transform: `rotate(0deg)` },
+            hourHand: { transform: `rotate(0deg)` }
           };
     };
 
