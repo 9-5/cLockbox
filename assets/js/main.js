@@ -1145,7 +1145,7 @@ function App() {
                             </div>
                         </div>
                     )}
-                    <header className="lockbox-header">
+                    <header className="lockbox-header text-center mb-8 bg-gray-900 text-white">
                     <h1 className="text-4xl font-bold" onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}}>Lockbox</h1>
                                     <button onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}} className="mr-2 text-white"><i className="fas fa-lock fa-xl"></i></button>
                                     <button 
