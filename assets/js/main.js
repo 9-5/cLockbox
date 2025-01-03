@@ -1146,18 +1146,19 @@ function App() {
                         </div>
                     )}
                     <header className="lockbox-header text-center mb-8 bg-gray-900 text-white">
-                    <h1 className="text-4xl font-bold" onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}}>Lockbox</h1>
-                                    <button onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}} className="mr-2 text-white"><i className="fas fa-lock fa-xl"></i></button>
-                                    <button 
-                                        className="mr-2 text-white"
-                                        onClick={() => setIsDeleteMode(!isDeleteMode)}
-                                    >
-                                        <i className="fas fa-trash"></i>
-                                    </button>
-                                    <button onClick={openSettings} className="mr-2 text-white"><i className="fas fa-cogs fa-xl"></i></button>
-                                </header>
-                                <main className="lockbox-content">
-    
+                        <h1 className="text-4xl font-bold" onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}}>Lockbox</h1>
+                        <button onClick={() => {setShowSettings(false); setPasswordModalVisible(true); setShowLockbox(false);}} className="mr-2 text-white"><i className="fas fa-lock fa-xl"></i></button>
+                        <button 
+                            className="mr-2 text-white"
+                            onClick={() => setIsDeleteMode(!isDeleteMode)}
+                        >
+                            <i className="fas fa-trash"></i>
+                        </button>
+                        <button onClick={openSettings} className="mr-2 text-white">
+                            <i className="fas fa-cogs fa-xl"></i>
+                        </button>
+                    </header>
+                    <main className="lockbox-content bg-gray-900 text-white">
                         <div className="upload-button-container">
                             <input type="file" id="fileInput" multiple className="block w-full text-sm text-gray-400 file:bg-gray-700 file:text-white hover:file:bg-gray-600" onChange={handleFileUpload} />
                         </div>
