@@ -146,20 +146,31 @@ function App() {
         setLaps([...laps, stopwatch]);
     };
 
-    const getClockHandsStyle = () => {
-        const timeNow = new Date();
-        const seconds =  ((timeNow.getSeconds() / 60) * 360) + 90;
-        const minutes = ((timeNow.getMinutes() / 60) * 360) + ((seconds / 60) * 6) + 90;
-        const hours = ((timeNow.getHours() % 12) * 30) + (minutes / 60) * 30;
-        return {
-            secondHand: { transform: `rotate(${seconds}deg)` },
-            minuteHand: { transform: `rotate(${minutes}deg)` },
-            hourHand: { transform: `rotate(${hours}deg)` }
-          };
-    };
-
-    const { secondHand, minuteHand, hourHand } = getClockHandsStyle();
-
+    useEffect(() => {
+        const hourEl = document.querySelector(".hour");
+        const minuteEl = document.querySelector(".minute");
+        const secondEl = document.querySelector(".second");
+    
+        const updateClock = () => {
+            const currentHour = new Date().getHours();
+            const hourDeg = (currentHour / 12) * 360;
+            hourEl.style.transform = `rotate(${hourDeg}deg)`;
+    
+            const currentMinute = new Date().getMinutes();
+            const minuteDeg = (currentMinute / 60) * 360;
+            minuteEl.style.transform = `rotate(${minuteDeg}deg)`;
+    
+            const currentSecond = new Date().getSeconds();
+            const secondDeg = (currentSecond / 60) * 360;
+            secondEl.style.transform = `rotate(${secondDeg}deg)`;
+        };
+    
+        const interval = setInterval(updateClock, 1000);
+        updateClock(); 
+    
+        return () => clearInterval(interval);
+    }, []);
+    
     const handleHourHandClick = () => {
         setTrackedHourClicks(prev => {
             const newCount = prev + 1;
@@ -188,9 +199,9 @@ function App() {
             <div className="mb-8">
                 {isAnalogClockEnabled && (
                     <div className="clock">
-                        <div className="hand hour" style={hourHand} onClick={() => handleHourHandClick()}></div>
-                        <div className="hand minute" style={minuteHand} onClick={() => handleMinuteHandClick()}></div>
-                        <div className="hand second" style={secondHand}></div>
+                        <div className="hand hour" onClick={() => handleHourHandClick()}></div>
+                        <div className="hand minute" onClick={() => handleMinuteHandClick()}></div>
+                        <div className="hand second"></div>
                     </div>
                 )}
             </div>
