@@ -44,7 +44,7 @@ function App() {
     const [isDeleteMode, setIsDeleteMode] = useState(false);
     const [enableServiceWorker, setEnableServiceWorker] = useState(() => {
         const savedPreference = localStorage.getItem('offlineMode');
-        return savedPreference !== null ? savedPreference === 'true' : false; // Default to false if no saved preference
+        return savedPreference !== null ? savedPreference === 'true' : false;
     });
 
     useEffect(() => {
@@ -1117,9 +1117,9 @@ function App() {
     const renderLockbox = () => {
         return (
                 
-                <div className="lockbox-container">
+                <div className="lockbox-container bg-gray-900">
                     {showSettings && (
-                        <div className="settings-container">
+                        <div className="settings-container text-white justify-center text-center">
                             <h2 className="text-2xl font-semibold">Lockbox Settings</h2>
                             <button className="btn btn-primary" onClick={openSettings}><i className="fas fa-arrow-left"></i> Back to Lockbox</button>
                             <div className="mt-4">
@@ -1174,9 +1174,9 @@ function App() {
                             <input type="file" id="fileInput" multiple className="block w-full text-sm text-gray-400 file:bg-gray-700 file:text-white hover:file:bg-gray-600" onChange={handleFileUpload} />
                         </div>
                         <div className="tabs mb-4">
-                            <button id="galleryTab" className={`tab ${galleryVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('gallery')}>Gallery</button>
-                            <button id="filesTab" className={`tab ${filesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('files')}>Files</button>
-                            <button id="notesTab" className={`tab ${notesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('notes')}>Notes</button>
+                            <button id="galleryTab" className={`tab ${galleryVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('gallery')}><i class="fas fa-photo-video fa-xl"></i></button>
+                            <button id="filesTab" className={`tab ${filesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('files')}><i class="fas fa-folder fa-xl"></i></button>
+                            <button id="notesTab" className={`tab ${notesVisible ? 'active' : ''} bg-gray-800 text-white`} onClick={() => handleTabClick('notes')}><i class="fas fa-sticky-note fa-xl"></i></button>
                             <div className="active-indicator" style={{ left: `${activeTabIndex * 100}%` }}></div>
                         </div>
                         <div id="gallery" className={`grid grid-cols-3 gap-3 ${galleryVisible ? '' : 'hidden'}`}>
