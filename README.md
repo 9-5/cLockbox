@@ -9,6 +9,8 @@ Instances: [clock.0kb.org](https://clock.0kb.org) | [clock.ż.co](https://clock.
 
 ## Table of Contents
 
+[Screenshots](#screenshots)
+
 [Features](#features)
 
 [Technologies Used](#technologies-used)
@@ -16,6 +18,11 @@ Instances: [clock.0kb.org](https://clock.0kb.org) | [clock.ż.co](https://clock.
 [Installation](#installation)
 
 [Usage](#usage)
+
+## Screenshots
+<div align="center">
+<img src="https://github.com/user-attachments/assets/db55881f-8c6a-42bd-a930-5ca1ebf54e1b" width="23%"></img><img src="https://github.com/user-attachments/assets/a1b2c8c4-91e0-4ea1-8cdf-58f360343df3" width="23%"></img><img src="https://github.com/user-attachments/assets/d3f8ed05-39e8-4627-8005-2e200a4f4fcb" width="23%"></img><img src="https://github.com/user-attachments/assets/70858431-b895-461b-81f7-6fce69ae8377" width="23%"></img><img src="https://github.com/user-attachments/assets/6140b70a-deb2-439e-be0a-4d5ebf1b3629" width="23%"></img><img src="https://github.com/user-attachments/assets/c0c2e048-c422-42fb-9e0a-77dae429d5cf" width="23%"></img><img src="https://github.com/user-attachments/assets/3c7b51ea-2fb8-4b64-bab7-89b24798af41" width="23%"></img><img src="https://github.com/user-attachments/assets/d68a0c4a-2e2f-4241-bf27-4725077e7db8" width="23%"></img>
+</div>
 
 ## Features
 
